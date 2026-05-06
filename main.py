@@ -91,7 +91,7 @@ class MainWindow(QMainWindow):
         clear_log_btn.setFixedHeight(30)
         clear_log_btn.setFixedWidth(155)
         clear_log_btn.clicked.connect(self.clear_log)
-        log_layout.addWidget(clear_log_btn, alignment=Qt.AlignRight)
+        log_layout.addWidget(clear_log_btn, alignment=Qt.AlignmentFlag.AlignRight)
 
         # --- 整体水平布局 ---
         main_layout = QHBoxLayout()

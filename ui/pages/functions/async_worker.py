@@ -11,7 +11,7 @@ class AsyncWorker(QObject):
 
     工作流程：
     1. 在 QThread 中运行 asyncio 事件循环
-    2. 调用 TiebaShelf.crawl_multi_posts() 批量处理所有 URL
+    2. 调用 TiebaSpider.crawl_multi_posts() 批量处理所有 URL
     3. 爬取完成后清理客户端资源
     4. 通过信号返回结果到 UI 线程
     """
