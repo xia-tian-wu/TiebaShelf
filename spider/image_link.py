@@ -10,7 +10,7 @@ from logger import logger
 from spider.utils import get_headers
 
 # ===================== 配置常量 =====================
-MAX_DOWNLOAD_CONCURRENCY = 8
+MAX_DOWNLOAD_CONCURRENCY = 12
 HTTP_TIMEOUT = 30
 RETRY_MAX_ATTEMPTS = 3
 RETRY_WAIT_MIN = 2

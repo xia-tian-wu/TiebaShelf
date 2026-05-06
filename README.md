@@ -1,32 +1,39 @@
-# Tieba Spider
+# TiebaShelf
 
 一个用于将贴吧帖子保存到本地并提供离线浏览的工具。
 
-当前状态：维护中（2026 年重构版）
+当前状态：维护中（原名TiebaSpider，AI推荐的名字查重率就是高，且抓取机制不算是爬虫了）
 
 ---
 
 ## 截图预览
 
 ### 主界面
+
 ![主界面截图](./assets/screenshot/main.png)
 
 ### 批量管理
+
 ![批量管理截图](assets/screenshot/manage.png)
 
 ### 勾选和菜单
+
 ![批量管理截图](assets/screenshot/batch.png)
 
 ### 日志输出
+
 ![日志输出截图](assets/screenshot/log.png)
 
 ### 白天模式
+
 ![日志输出截图](assets/screenshot/day_mode.png)
 
 ### 夜间模式
+
 ![日志输出截图](assets/screenshot/night_mode.png)
 
 ### 图片浏览
+
 ![日志输出截图](assets/screenshot/pic_edit.png)
 
 ---
@@ -75,30 +82,34 @@ aiotieba API → 数据解析 → 本地存储 → index → Markdown
 
 ## 快速开始
 
-- 在右侧 Release 中下载 `TiebaSpider.zip`，解压后运行 `TiebaSpider.exe` 即可。
-- 所有爬取内容自动保存在程序目录下的 `data/` 文件夹，与`TiebaSpider.exe`同级。
-- 请不要修改文件夹中的`TiebaSpider.exe`位置。建议在桌面创建`TiebaSpider`的快捷方式，方便使用和整体迁移。
+- 在右侧 Release 中下载 `TiebaShelf.zip`，解压后运行 `TiebaShelf.exe` 即可。一般情况下选择最新版。
+- 所有爬取内容自动保存在程序目录下的 `data/` 文件夹，与 `TiebaShelf.exe`同级。
+- 请不要修改文件夹中的 `TiebaShelf.exe`位置。建议在桌面创建 `TiebaShelf`的快捷方式，方便使用和整体迁移。
 - 如果你知道什么是🐭🐭饭，选择内置版本，否则选择纯净正式版。
+- 受项目作者水平，编程语言和第三方库等的影响，软件启动较慢，还请谅解。在打开较大帖子时，会比较卡顿。
 
 ---
 
 ## 本地部署
 
 ### 环境要求
+
 * Python 3.11
 * Windows 10/11
 
 ### 安装步骤
+
 ```bash
-git clone https://github.com/xia-tian-wu/tieba-spider.git
+git clone https://github.com/xia-tian-wu/TiebaShelf.git
 cd tieba-spider
 pip install -r requirements.txt
 python main.py
 ```
 
 ### 打包为 exe
+
 ```bash
-pyinstaller TiebaSpider.spec
+pyinstaller TiebaShelf.spec
 ```
 
 生成文件在 `dist/` 目录。
@@ -108,16 +119,19 @@ pyinstaller TiebaSpider.spec
 ## 使用教程
 
 ### 爬取单个帖子
+
 1. 进入 **爬取** 页面
 2. 粘贴贴吧帖子链接
 3. 可选：开启 **只看楼主**
 4. 点击 **开始爬取**
 
 ### 批量爬取
+
 * 支持多行链接批量导入
 * 自动去重，支持增量更新
 
 ### 管理已爬取帖子
+
 * 单帖更新 / 重新爬取 / 删除
 * 批量操作
 * 搜索与筛选
@@ -134,13 +148,10 @@ pyinstaller TiebaSpider.spec
 
 * **Q：安全验证/拦截？**
   A：本项目基于 aiotieba 官方风格 API，拦截率已大幅降低。避免高频爬取即可。
-
 * **Q：支持楼中楼吗？**
   A：当前版本暂不支持。
-
 * **Q：图片下载失败？**
   A：链接过期、网络问题或反爬限制，可尝试重新爬取。
-
 * **Q：可以多开吗？**
   A：不支持，单实例保护防止数据冲突。
 
@@ -167,4 +178,3 @@ MIT License
 友情链接：[TiebaArchiver](https://github.com/Sorceresssis/TiebaArchiver)
 
 </div>
-

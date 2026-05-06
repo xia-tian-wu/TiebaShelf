@@ -36,7 +36,7 @@ import spider.exceptions as ex
 
 from logger import logger
 
-class TiebaSpider:
+class TiebaShelf:
     # =============== 初始化与基础配置 ===============
     def __init__(self, client: None | httpx.AsyncClient = None) -> None:
         """初始化爬虫对象"""

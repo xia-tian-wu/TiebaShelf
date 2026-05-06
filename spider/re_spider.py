@@ -35,7 +35,7 @@ def timestamp_to_datetime(timestamp: int, format_str: str = "%Y-%m-%d %H:%M") ->
     return dt.strftime(format_str)
 
 
-class TiebaSpider:
+class TiebaShelf:
     """基于 aiotieba 的贴吧爬虫类"""
 
     def __init__(self) -> None:

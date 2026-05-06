@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, Signal, QSharedMemory
 from PySide6.QtGui import QPalette, QColor, QIcon
-from spider.re_spider import TiebaSpider
+from spider.re_spider import TiebaShelf
 
 from ui.pages.pages_crawl import PageCrawl
 from ui.pages.functions.progress_manager import TaskProgressManager
@@ -20,7 +20,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self, app_instance: QApplication):
         super().__init__()
-        self.setWindowTitle("TiebaSpider v2.2")
+        self.setWindowTitle("TiebaShelf v2.3")
 
         self.setMinimumSize(1000, 600)
         icon_path = SOURCE_PATH / 'ui' /'momo.ico'
@@ -60,7 +60,7 @@ class MainWindow(QMainWindow):
             progress_bar=self.global_progress_bar
         )
 
-        self.spider = TiebaSpider()
+        self.spider = TiebaShelf()
 
         self.middle_container = QWidget()
         self.middle_layout = QVBoxLayout(self.middle_container)
@@ -77,7 +77,7 @@ class MainWindow(QMainWindow):
         self.log_area = QTextEdit()
         self.log_area.setReadOnly(True)
         self.log_area.setFixedWidth(160)
-        self.log_area.append("=== 爬虫日志 ===")
+        self.log_area.append(" ==== 操作日志 ====")
         self.log_area.append("UI 加载完成，等待任务执行...")
         self.ui_log_handler = add_ui_handler(self.log_area)
 
@@ -124,7 +124,7 @@ class MainWindow(QMainWindow):
 
     def clear_log(self):
         self.log_area.clear()
-        self.log_area.append("=== 爬虫日志 ===")
+        self.log_area.append(" ==== 操作日志 ====")
         self.log_area.append("日志已清空，等待新任务执行...")
         global_logger.info("日志面板已清空")
 
@@ -139,7 +139,7 @@ class MainWindow(QMainWindow):
 if __name__ == "__main__":
 
     # 创建共享内存段（名称必须唯一）
-    shared_mem = QSharedMemory("TiebaSpider_SingleInstance")
+    shared_mem = QSharedMemory("TiebaShelf_SingleInstance")
 
     # 尝试创建共享内存
     if not shared_mem.create(1):  # 1 字节足够
@@ -147,7 +147,7 @@ if __name__ == "__main__":
         QMessageBox.critical(
             None,
             "程序已在运行",
-            "“贴吧爬虫”已经在运行中。\n\n请切换到已打开的窗口。"
+            "“贴吧书库”已经在运行中。\n\n请切换到已打开的窗口。"
         )
         sys.exit(1)  # 退出新启动的实例
 

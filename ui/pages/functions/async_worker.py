@@ -1,7 +1,7 @@
 import asyncio
 from PySide6.QtCore import Signal, QObject
 from logger import logger
-from spider.re_spider import TiebaSpider
+from spider.re_spider import TiebaShelf
 from spider import exceptions as ex
 
 
@@ -11,7 +11,7 @@ class AsyncWorker(QObject):
 
     工作流程：
     1. 在 QThread 中运行 asyncio 事件循环
-    2. 调用 TiebaSpider.crawl_multi_posts() 批量处理所有 URL
+    2. 调用 TiebaShelf.crawl_multi_posts() 批量处理所有 URL
     3. 爬取完成后清理客户端资源
     4. 通过信号返回结果到 UI 线程
     """
@@ -30,7 +30,7 @@ class AsyncWorker(QObject):
             recrawl_urls: 需重新爬取的帖子 URL 列表（强制重爬）
         """
         super().__init__()
-        self.spider: TiebaSpider | None = None
+        self.spider: TiebaShelf | None = None
         self.new_urls = new_urls or []
         self.update_urls = update_urls or []
         self.recrawl_urls = recrawl_urls or []
@@ -70,7 +70,7 @@ class AsyncWorker(QObject):
             return []
 
         # 创建爬虫实例
-        self.spider = TiebaSpider()
+        self.spider = TiebaShelf()
 
         try:
             # 批量爬取所有帖子
