@@ -267,6 +267,7 @@ class PageManage(QWidget):
         # 刷新按钮
         self.refresh_btn = QPushButton("刷新列表")
         self.refresh_btn.setFixedSize(80, 30)
+        self.refresh_btn.clicked.connect(self.load_posts)
         
         # === 一体化搜索框：下拉框 + 输入框 ===
         self.search_widget = QWidget()
