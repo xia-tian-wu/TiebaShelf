@@ -37,11 +37,12 @@ DATA_DIR = BASE_PATH / 'data'
 POSTS_DIR = DATA_DIR / "posts"
 IMAGES_DIR = DATA_DIR / "images"
 MARKDOWN_DIR = DATA_DIR / "markdowns"
+PATCHES_DIR = DATA_DIR / "patches"
 
 SOURCE_PATH = get_resource_path()
 
 # 创建目录（现在会创建在 exe 同目录下！）
-for directory in [DATA_DIR, POSTS_DIR, IMAGES_DIR, MARKDOWN_DIR]:
+for directory in [DATA_DIR, POSTS_DIR, IMAGES_DIR, MARKDOWN_DIR, PATCHES_DIR]:
     directory.mkdir(parents=True, exist_ok=True)
 
 # other configurations

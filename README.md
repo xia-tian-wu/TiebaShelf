@@ -36,6 +36,16 @@
 
 ![日志输出截图](assets/screenshot/pic_edit.png)
 
+
+### 搜索功能
+![帖子搜索截图](assets/screenshot/search.png)
+
+### 跳转功能
+![图片跳转截图](assets/screenshot/jumping.png)
+
+### 修改功能
+![帖子修改截图](assets/screenshot/post_edit.png)
+
 ---
 
 ## 功能
@@ -47,6 +57,7 @@
 * 支持只看楼主模式
 * 内嵌 Chromium 渲染，实现离线浏览
 * 内容搜索与图片所在楼层跳转
+* 对帖子内容无伤化修改（修改部分保存在patches文件夹中）
 
 ---
 
@@ -57,6 +68,7 @@ data/
 ├── posts/       # 原始数据（JSON）
 ├── markdowns/   # 渲染用 Markdown
 ├── images/      # 图片资源
+├── patches/     # 帖子补丁
 └── index.json   # 索引
 ```
 
@@ -136,6 +148,7 @@ pyinstaller TiebaShelf.spec
 * 单帖更新 / 重新爬取 / 删除
 * 批量操作
 * 搜索与筛选
+* 右键菜单的使用本地默认md阅读器，编辑帖子，打开资源目录等
 
 ---
 

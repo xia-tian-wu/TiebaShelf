@@ -237,7 +237,7 @@ class TiebaShelf:
             )
 
             if not new_floors:
-                logger.info(f"帖子 {tid} 没有新内容")
+                logger.info(f"帖子《{post_sign}》没有新内容")
                 return None
 
             # 4. 下载图片

@@ -20,7 +20,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self, app_instance: QApplication):
         super().__init__()
-        self.setWindowTitle("TiebaShelf v2.3")
+        self.setWindowTitle("TiebaShelf v2.4")
 
         self.setMinimumSize(1000, 600)
         icon_path = SOURCE_PATH / 'ui' /'momo.ico'
@@ -119,6 +119,13 @@ class MainWindow(QMainWindow):
         manage_page = self.stacked_widget.widget(1)
         if hasattr(manage_page, 'viewer_window') and manage_page.viewer_window:
             manage_page.viewer_window.close()
+
+        # 关闭所有打开的JSON编辑器
+        if hasattr(manage_page, 'items'):
+            for item in manage_page.items.values():
+                editor = getattr(item, '_json_editor', None)
+                if editor is not None:
+                    editor.close()
         
         super().closeEvent(event)
 

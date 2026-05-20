@@ -100,8 +100,13 @@ class ManageItemWidget(QWidget):
         open_file_action = QAction("在默认阅读器中打开Markdown", self)
         open_file_action.triggered.connect(self.open_markdown)
         menu.addAction(open_file_action)
-        
-        # 添加“打开所在文件夹”
+
+        # 添加"编辑帖子内容"
+        edit_action = QAction("编辑帖子内容", self)
+        edit_action.triggered.connect(self.open_json_editor)
+        menu.addAction(edit_action)
+
+        # 添加"打开所在文件夹"
         open_folder_action = QAction("浏览本地资源文件夹", self)
         open_folder_action.triggered.connect(self.open_post_folder)
         menu.addAction(open_folder_action)
@@ -167,6 +172,33 @@ class ManageItemWidget(QWidget):
             os.startfile(folder_path)
         else:
             QMessageBox.warning(self, "提示", "文件夹尚未创建或已被删除")
+
+    def open_json_editor(self):
+        """打开JSON编辑器"""
+        from ui.pages.functions.json_editor import JsonEditorWindow
+        from config import POSTS_DIR
+        json_path = Path(self.file_path) if Path(self.file_path).is_absolute() else POSTS_DIR / Path(self.file_path).name
+        if not json_path.exists():
+            QMessageBox.warning(self, "提示", f"找不到帖子JSON文件:\n{json_path}")
+            return
+
+        # 如果编辑器已打开，激活它
+        editor_ref = getattr(self, '_json_editor', None)
+        if editor_ref is not None:
+            if editor_ref.isVisible():
+                editor_ref.activateWindow()
+                editor_ref.raise_()
+                return
+            self._json_editor = None
+
+        editor = JsonEditorWindow(str(json_path), self.display_name)
+        editor.destroyed.connect(lambda: self._clear_json_editor(editor))
+        self._json_editor = editor
+        editor.show()
+
+    def _clear_json_editor(self, editor):
+        if getattr(self, '_json_editor', None) is editor:
+            self._json_editor = None
 
     def set_batch_mode(self, enabled: bool):
         self.is_batch_mode = enabled
