@@ -38,7 +38,14 @@ def convert_post_json_to_markdown(json_path: Path) -> str:
     return str(md_path)
     
 def _render_markdown_from_post_data(post_data: PostData, image_abs_dir: Path) -> str:
-    """
+    """将帖子数据渲染为 Markdown 文本。
+
+    Args:
+        post_data: 帖子数据（含楼层列表）。
+        image_abs_dir: 图片目录的绝对路径。
+
+    Returns:
+        Markdown 文本。
     """
     lines = []
     
