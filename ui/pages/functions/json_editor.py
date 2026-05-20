@@ -115,7 +115,7 @@ class JsonEditorWindow(QMainWindow):
         self._update_hints()
 
     def _create_toolbar(self):
-        """创建顶部工具栏：右侧"保存修改"按钮。"""
+        """创建顶部工具栏：左侧"撤销修改"，右侧"保存修改"。"""
         toolbar = self.addToolBar("编辑工具栏")
         toolbar.setMovable(False)
         toolbar.setFloatable(False)
@@ -127,9 +127,23 @@ class JsonEditorWindow(QMainWindow):
             "QToolButton:pressed { background: #2169b1; }"
         )
 
-        spacer = QWidget()
-        spacer.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        toolbar.addWidget(spacer)
+        undo_btn = QToolButton()
+        undo_btn.setText("撤销修改")
+        undo_btn.setToolButtonStyle(Qt.ToolButtonTextOnly)
+        undo_btn.clicked.connect(self._undo_and_close)
+        toolbar.addWidget(undo_btn)
+
+        spacer_left = QWidget()
+        spacer_left.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        toolbar.addWidget(spacer_left)
+
+        hint_label = QLabel("请勿手动修改 [图片：] 标记，应通过图片列表管理")
+        hint_label.setStyleSheet("color: #999; font-size: 12px;")
+        toolbar.addWidget(hint_label)
+
+        spacer_right = QWidget()
+        spacer_right.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        toolbar.addWidget(spacer_right)
 
         save_btn = QToolButton()
         save_btn.setText("保存修改")
@@ -323,6 +337,33 @@ class JsonEditorWindow(QMainWindow):
             self.hint_content.hide()
             text = self.hint_toggle.text()
             self.hint_toggle.setText(text.replace("▾", "▸"))
+
+    def _undo_and_close(self):
+        """撤销所有修改：删除补丁文件，重生成无补丁的 Markdown，关闭窗口。"""
+        if not self.patch_path.exists():
+            QMessageBox.information(self, "提示", "未检测到任何已保存的修改")
+            return
+
+        reply = QMessageBox.question(
+            self, "确认撤销",
+            "确定要撤销所有修改吗？\n补丁文件将被删除，帖子恢复为原始内容。",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return
+
+        try:
+            self.patch_path.unlink()
+        except Exception as e:
+            QMessageBox.critical(self, "撤销失败", f"删除补丁文件失败:\n{e}")
+            return
+
+        with open(self.json_path, 'r', encoding='utf-8') as f:
+            self.post_data = json.load(f)
+        self.patch_data = None
+        self._rebuild_markdown()
+        logger.info(f"已撤销修改，补丁文件已删除: {self.patch_path}")
+        self.close()
 
     def _save_and_close(self):
         """保存补丁文件并关闭窗口。"""
