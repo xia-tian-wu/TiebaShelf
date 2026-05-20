@@ -1,12 +1,13 @@
 import os
 import json
 import shutil
+from pathlib import Path
 from logger import logger
 from typing import Dict
 from spider.type_models import PostData, PostIndex, FloorData
 
 from spider.utils import extract_posts_id, get_safe_filename, get_display_name, json_to_md_path
-from config import DATA_DIR
+from config import DATA_DIR, PATCHES_DIR
 
 class IndexManager:
     def __init__(self):
@@ -175,10 +176,11 @@ class IndexManager:
         Returns:
             bool: True 表示删除成功（或不存在），False 表示发生错误
         
-        Side Effects:
+         Side Effects:
             - 删除 data/posts/ 下的 JSON 文件
             - 删除 data/images/{post_id}_{mode}/ 目录
             - 删除 data/markdowns/ 下的 .md 文件
+            - 删除 data/patches/ 下的 .patch.json 文件
             - 从 index.json 中移除对应条目
         """
         try:
@@ -217,8 +219,13 @@ class IndexManager:
                 os.remove(md_full_path)
             else:
                 logger.warning(f"Markdown 文件不存在: {md_full_path}")
-            
-            # 5. 从索引中移除
+
+            # 5. 删除补丁文件（如存在）
+            patch_path = PATCHES_DIR / f"{Path(file_path).stem}.patch.json"
+            if patch_path.exists():
+                os.remove(patch_path)
+
+            # 6. 从索引中移除
             del index[index_key]
             self.save_index(index)
             logger.info(f"已从索引中移除: {display_name}")
