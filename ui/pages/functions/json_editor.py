@@ -3,13 +3,11 @@
 用户修改以补丁文件形式保存到 PATCHES_DIR，
 原始 JSON 不被修改，Markdown 生成时自动合并补丁。
 """
-import os
 import json
 import shutil
 import time
 import re
 from pathlib import Path
-from urllib.parse import quote
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
     QLabel, QPushButton, QLineEdit, QTextEdit, QFileDialog, QMessageBox,
@@ -20,6 +18,7 @@ from PySide6.QtGui import QIcon
 
 from config import MARKDOWN_DIR, IMAGES_DIR, PATCHES_DIR, SOURCE_PATH
 from logger import logger
+from markdown_builder import _render_markdown_from_post_data
 
 
 class JsonEditorWindow(QMainWindow):
@@ -427,55 +426,12 @@ class JsonEditorWindow(QMainWindow):
         mode_suffix = "see_lz" if see_lz else "full"
         image_abs_dir = IMAGES_DIR / f"{post_id}_{mode_suffix}"
 
-        md_content = self._render_markdown(merged, image_abs_dir)
+        md_content = _render_markdown_from_post_data(merged, image_abs_dir)
 
         md_path = MARKDOWN_DIR / f"{self.json_path.stem}.md"
         MARKDOWN_DIR.mkdir(parents=True, exist_ok=True)
         with open(md_path, 'w', encoding='utf-8') as f:
             f.write(md_content)
-
-    @staticmethod
-    def _render_markdown(post_data: dict, image_abs_dir: Path) -> str:
-        """将帖子数据渲染为 Markdown 文本（含图片路径编码）。"""
-        lines = []
-        lines.append(f"# {post_data.get('title', '无标题')}\n")
-        lines.append(
-            f"> **原始链接**: {post_data['url']}  \n"
-            f"> **帖子所在**: {post_data.get('bar', '未知吧名')}  \n"
-            f"> **模式**: {'只看楼主' if post_data.get('see_lz') else '完整版'}  \n"
-            f"> **总楼层数**: {post_data['total_floors']}  \n"
-            f"> **总页数**: {post_data['total_pages']}  \n"
-            f"> **抓取时间**: {post_data.get('crawl_time', '')}  \n"
-        )
-        lines.append('---\n')
-
-        for floor in post_data["floors"]:
-            floor_num = floor["floor_number"]
-            author = floor["author"]
-            post_time = floor.get("post_time", "")
-            ip = floor.get("ip_location", "")
-            content = floor.get("content", "")
-            device = floor.get('device', '')
-
-            meta_parts = [f"{k}：{v}" for k, v in
-                          [("时间", post_time), ("IP", ip), ("设备", device)] if v.strip()]
-            floor_meta_str = " · ".join([f"{floor_num}楼"] + meta_parts)
-            lines.append(f"### {author} \n{floor_meta_str}\n")
-
-            def replace_image_tag(match, img_dir=image_abs_dir):
-                img_filename = match.group(1)
-                img_abs_path = img_dir / img_filename
-                if not img_abs_path.exists():
-                    return f"[图片：{img_filename} (未找到)]"
-                rel_path = os.path.relpath(img_abs_path, MARKDOWN_DIR).replace("\\", "/")
-                rel_path = quote(rel_path, safe="/")
-                return f"![image]({rel_path})"
-
-            rendered = re.sub(r'\[图片：([^\]]+)\]', replace_image_tag, content)
-            lines.append(rendered.strip() or '「该楼层无内容」')
-            lines.append('\n---\n')
-
-        return '\n'.join(lines)
 
     def _apply_styles(self):
         """应用编辑器样式表。"""

@@ -99,6 +99,7 @@ def _render_markdown_from_post_data(post_data: PostData, image_abs_dir: Path) ->
             return f"![image]({rel_path})"
         
         renderded_content = re.sub(r'\[图片：([^\]]+)\]', replace_image_tag, content)
+        renderded_content = renderded_content.replace('\n', '  \n')
         lines.append(renderded_content.strip() or '「该楼层无内容」')
         lines.append('\n---\n')
     
