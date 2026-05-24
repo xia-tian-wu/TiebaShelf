@@ -15,7 +15,6 @@ from ui.pages.functions.async_worker import AsyncWorker
 from ui.pages.markdown_viewer_page import MarkdownViewerWindow
 from logger import logger
 import asyncio
-import os
 
 from ui.pages.functions.toggle_switch import ToggleSwitch
 
@@ -119,9 +118,14 @@ class ManageItemWidget(QWidget):
         menu.addAction(copy_action)
 
         # 添加“使用浏览器打开”
-        open_browser_action = QAction("使用浏览器打开", self)
+        open_browser_action = QAction("使用浏览器打开链接", self)
         open_browser_action.triggered.connect(self.open_url_in_browser)
         menu.addAction(open_browser_action)
+
+        # 添加“使用浏览器打开本地帖子内容”
+        open_html_action = QAction("使用浏览器打开本地帖子内容", self)
+        open_html_action.triggered.connect(self.open_html_in_browser)
+        menu.addAction(open_html_action)
         
         # 在鼠标点击位置显示菜单
         menu.exec(event.globalPos())
@@ -151,7 +155,18 @@ class ManageItemWidget(QWidget):
         except Exception as e:
             logger.error(f"打开链接失败: {str(e)}")
             QMessageBox.critical(self, "错误", f"无法打开链接:\n{str(e)}")
-    
+
+    def open_html_in_browser(self):
+        """在默认浏览器中打开渲染后的 HTML 页面（临时文件，用完即删）。"""
+        md_file, _ = self.get_md_path()
+        if not os.path.exists(md_file):
+            QMessageBox.warning(self, "提示", f"找不到 Markdown 文件：\n{md_file}")
+            return
+
+        from ui.pages.functions.markdown_viewer import render_markdown_to_temp_html
+        temp_path = render_markdown_to_temp_html(Path(md_file))
+        os.startfile(str(temp_path))
+
     def get_md_path(self):
         md_file = json_to_md_path(self.file_path)
         folder_path = os.path.dirname(md_file)

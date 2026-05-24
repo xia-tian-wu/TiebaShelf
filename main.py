@@ -8,6 +8,7 @@ from PySide6.QtCore import Qt, Signal, QSharedMemory
 from PySide6.QtGui import QPalette, QColor, QIcon
 from spider.re_spider import TiebaShelf
 
+from ui.pages.functions.markdown_viewer import cleanup_stale_temp_html
 from ui.pages.pages_crawl import PageCrawl
 from ui.pages.functions.progress_manager import TaskProgressManager
 from ui.pages.pages_manage3 import PageManage
@@ -20,6 +21,7 @@ class MainWindow(QMainWindow):
 
     def __init__(self, app_instance: QApplication):
         super().__init__()
+        cleanup_stale_temp_html()
         self.setWindowTitle("TiebaShelf v2.4")
 
         self.setMinimumSize(1000, 600)
@@ -126,7 +128,8 @@ class MainWindow(QMainWindow):
                 editor = getattr(item, '_json_editor', None)
                 if editor is not None:
                     editor.close()
-        
+
+        cleanup_stale_temp_html()
         super().closeEvent(event)
 
     def clear_log(self):

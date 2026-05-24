@@ -6,88 +6,19 @@ from markdown_it import MarkdownIt
 import uuid
 import tempfile
 
-class MarkdownViewer(QWidget):
-    """Markdown 阅读器组件 - 使用 QWebEngineView 渲染"""
+def build_standalone_html(md_path: Path, html_body: str) -> str:
+    """构建包含完整 CSS/JS 的独立 HTML 文档，可用于浏览器打开。
 
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.current_md_path = None
-        self._temp_html_path = None
-        self.init_ui()
+    Args:
+        md_path: Markdown 文件路径（用于解析图片相对路径）。
+        html_body: markdown-it 渲染后的 HTML 正文。
 
-    def init_ui(self):
-        layout = QVBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        self.web_view = QWebEngineView()
-        layout.addWidget(self.web_view)
-        self.setLayout(layout)
+    Returns:
+        完整的 HTML 文档字符串。
+    """
+    base_href = QUrl.fromLocalFile(str(md_path.parent.absolute()) + "/").toString()
 
-    def load_markdown(self, md_path: Path, display_name: str = ""):
-        """加载并渲染 Markdown 文件"""
-        try:
-            self.current_md_path = md_path
-
-            if not md_path.exists():
-                QMessageBox.warning(
-                    self,
-                    "文件不存在",
-                    f"找不到 Markdown 文件：\n{md_path}"
-                )
-                return False
-
-            md_text = md_path.read_text(encoding="utf-8")
-            md = MarkdownIt("commonmark", {"html": True})
-            html_body = md.render(md_text)
-            html = self._build_html(html_body)
-
-            self._cleanup_temp_file()
-
-            temp_dir = tempfile.gettempdir()
-            file_name = f"render_{uuid.uuid4().hex}.html"
-            temp_file_path = Path(temp_dir) / file_name
-
-            with open(temp_file_path, 'w', encoding='utf-8') as f:
-                f.write(html)
-
-            self._temp_html_path = temp_file_path
-
-            base_url = QUrl.fromLocalFile(str(md_path.parent.absolute()) + "/")
-            file_url = QUrl.fromLocalFile(temp_file_path)
-            self.web_view.load(file_url)
-
-            return True
-
-        except Exception as e:
-            QMessageBox.critical(
-                self,
-                "加载失败",
-                f"无法加载 Markdown 文件：\n{str(e)}"
-            )
-            return False
-
-    def _cleanup_temp_file(self):
-        """删除临时文件"""
-        if self._temp_html_path and self._temp_html_path.exists():
-            try:
-                self._temp_html_path.unlink()
-            except Exception:
-                pass
-            self._temp_html_path = None
-
-    def closeEvent(self, event):
-        """窗口关闭时清理"""
-        self._cleanup_temp_file()
-        super().closeEvent(event)
-
-    def __del__(self):
-        """对象销毁时清理"""
-        self._cleanup_temp_file()
-
-    def _build_html(self, html_body: str) -> str:
-        """构建完整的 HTML 文档，包含所有 CSS 和 JavaScript"""
-        base_href = QUrl.fromLocalFile(str(self.current_md_path.parent.absolute()) + "/").toString()
-
-        return f'''<!DOCTYPE html>
+    return f'''<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
@@ -656,3 +587,95 @@ document.addEventListener('DOMContentLoaded', () => {{
 </script>
 </body>
 </html>'''
+
+
+def render_markdown_to_temp_html(md_path: Path) -> Path:
+    """将 Markdown 文件渲染为独立 HTML 临时文件，返回文件路径。"""
+    md_text = md_path.read_text(encoding="utf-8")
+    md = MarkdownIt("commonmark", {"html": True})
+    html_body = md.render(md_text)
+    html = build_standalone_html(md_path, html_body)
+
+    temp_dir = Path(tempfile.gettempdir())
+    file_name = f"Tshelf_render_{uuid.uuid4().hex}.html"
+    temp_path = temp_dir / file_name
+    temp_path.write_text(html, encoding="utf-8")
+    return temp_path
+
+
+def cleanup_stale_temp_html():
+    """删除 %TEMP% 中所有 Tshelf_render_*.html 遗留文件"""
+    temp_dir = Path(tempfile.gettempdir())
+    for f in temp_dir.glob("Tshelf_render_*.html"):
+        try:
+            f.unlink()
+        except OSError:
+            pass
+
+
+class MarkdownViewer(QWidget):
+    """Markdown 阅读器组件 - 使用 QWebEngineView 渲染"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.current_md_path = None
+        self._temp_html_path = None
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.web_view = QWebEngineView()
+        layout.addWidget(self.web_view)
+        self.setLayout(layout)
+
+    def load_markdown(self, md_path: Path, display_name: str = ""):
+        """加载并渲染 Markdown 文件"""
+        try:
+            self.current_md_path = md_path
+
+            if not md_path.exists():
+                QMessageBox.warning(
+                    self,
+                    "文件不存在",
+                    f"找不到 Markdown 文件：\n{md_path}"
+                )
+                return False
+
+            self._cleanup_temp_file()
+
+            temp_file_path = render_markdown_to_temp_html(md_path)
+            self._temp_html_path = temp_file_path
+
+            base_url = QUrl.fromLocalFile(str(md_path.parent.absolute()) + "/")
+            file_url = QUrl.fromLocalFile(temp_file_path)
+            self.web_view.load(file_url)
+
+            return True
+
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "加载失败",
+                f"无法加载 Markdown 文件：\n{str(e)}"
+            )
+            return False
+
+    def _cleanup_temp_file(self):
+        """删除临时文件"""
+        if self._temp_html_path and self._temp_html_path.exists():
+            try:
+                self._temp_html_path.unlink()
+            except Exception:
+                pass
+            self._temp_html_path = None
+
+    def closeEvent(self, event):
+        """窗口关闭时清理"""
+        self._cleanup_temp_file()
+        super().closeEvent(event)
+
+    def __del__(self):
+        """对象销毁时清理"""
+        self._cleanup_temp_file()
+
