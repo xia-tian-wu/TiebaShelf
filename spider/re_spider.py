@@ -242,7 +242,7 @@ class TiebaShelf:
 
             # 4. 下载图片
             mode_suffix = "see_lz" if current_see_lz else "full"
-            save_dir = Path(IMAGES_DIR) / f"{tid}_{mode_suffix}"
+            save_dir = IMAGES_DIR / f"{tid}_{mode_suffix}"
 
             async with TiebaImageDownloader() as downloader:
                 success_count, _ = await downloader.download_and_backfill(

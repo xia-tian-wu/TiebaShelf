@@ -457,7 +457,7 @@ class PageManage(QWidget):
         """在独立窗口中打开 Markdown 阅读器"""
         from spider.utils import json_to_md_path
         
-        md_path = Path(json_to_md_path(file_path))
+        md_path = json_to_md_path(file_path)
         if not md_path.exists():
             # 尝试从 data/posts 路径转换
             md_path = Path(file_path.replace(".json", ".md").replace("posts", "markdowns"))

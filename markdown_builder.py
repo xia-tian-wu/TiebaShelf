@@ -6,7 +6,7 @@ from urllib.parse import quote
 from config import MARKDOWN_DIR, IMAGES_DIR, PATCHES_DIR
 from spider.type_models import PostData
 
-def convert_post_json_to_markdown(json_path: Path) -> str:
+def convert_post_json_to_markdown(json_path: str | Path) -> str:
     """
     将单个帖子 JSON 文件转换为 Markdown，并保存到 markdowns/ 下。
     
