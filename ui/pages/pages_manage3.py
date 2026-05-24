@@ -106,7 +106,7 @@ class ManageItemWidget(QWidget):
         menu.addAction(edit_action)
 
         # 添加"打开所在文件夹"
-        open_folder_action = QAction("浏览本地资源文件夹", self)
+        open_folder_action = QAction("浏览本地MD资源文件夹", self)
         open_folder_action.triggered.connect(self.open_post_folder)
         menu.addAction(open_folder_action)
         
@@ -118,12 +118,12 @@ class ManageItemWidget(QWidget):
         menu.addAction(copy_action)
 
         # 添加“使用浏览器打开”
-        open_browser_action = QAction("使用浏览器打开链接", self)
+        open_browser_action = QAction("使用浏览器打开原始链接", self)
         open_browser_action.triggered.connect(self.open_url_in_browser)
         menu.addAction(open_browser_action)
 
         # 添加“使用浏览器打开本地帖子内容”
-        open_html_action = QAction("使用浏览器打开本地帖子内容", self)
+        open_html_action = QAction("使用浏览器阅读本地帖子", self)
         open_html_action.triggered.connect(self.open_html_in_browser)
         menu.addAction(open_html_action)
         
@@ -157,25 +157,25 @@ class ManageItemWidget(QWidget):
             QMessageBox.critical(self, "错误", f"无法打开链接:\n{str(e)}")
 
     def open_html_in_browser(self):
-        """在默认浏览器中打开渲染后的 HTML 页面（临时文件，用完即删）。"""
+        """在默认浏览器中打开渲染后的 HTML 页面"""
         md_file, _ = self.get_md_path()
-        if not os.path.exists(md_file):
+        if not md_file.exists():
             QMessageBox.warning(self, "提示", f"找不到 Markdown 文件：\n{md_file}")
             return
 
         from ui.pages.functions.markdown_viewer import render_markdown_to_temp_html
-        temp_path = render_markdown_to_temp_html(Path(md_file))
-        os.startfile(str(temp_path))
+        temp_path = render_markdown_to_temp_html(md_file)
+        os.startfile(temp_path)
 
-    def get_md_path(self):
+    def get_md_path(self) -> tuple[Path, Path]:
         md_file = json_to_md_path(self.file_path)
-        folder_path = os.path.dirname(md_file)
+        folder_path = md_file.parent
         return md_file, folder_path
     
     def open_markdown(self):
         """使用系统默认程序打开 MD 文件"""
         md_file, _ = self.get_md_path()
-        if os.path.exists(md_file):
+        if md_file.exists():
             os.startfile(md_file)  # Windows 专用，会调用默认程序（如 VSCode）
         else:
             QMessageBox.warning(self, "提示", f"找不到本地文件：\n{md_file}")
@@ -183,7 +183,7 @@ class ManageItemWidget(QWidget):
     def open_post_folder(self):
         """打开文件所在的文件夹"""
         _, folder_path = self.get_md_path()
-        if os.path.exists(folder_path):
+        if folder_path.exists():
             os.startfile(folder_path)
         else:
             QMessageBox.warning(self, "提示", "文件夹尚未创建或已被删除")

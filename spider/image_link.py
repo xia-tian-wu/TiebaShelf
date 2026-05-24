@@ -46,7 +46,7 @@ class TiebaImageDownloader:
         retry=retry_if_exception_type((httpx.RequestError, httpx.HTTPStatusError)),
         reraise=True
     )
-    async def _extract_waterurl(self, preview_url: str) -> Optional[str]:
+    async def _extract_waterurl(self, preview_url: str) -> str | None:
         """
         从预览页HTML中用正则提取带签名的 waterurl（分层匹配，兼容多格式）
         
@@ -148,7 +148,7 @@ class TiebaImageDownloader:
                 return save_path.resolve()
 
             # 3. 提取带签名的 waterurl
-            highres_url = await self._extract_waterurl(preview_url)
+            highres_url = await self._extract_waterurl(preview_url+'&post_id=123') # 这是贴吧的bug，极少部分图片必须要加上 post_id 参数
             if not highres_url:
                 return None
 

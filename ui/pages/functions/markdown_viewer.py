@@ -484,12 +484,12 @@ document.addEventListener('DOMContentLoaded', () => {{
 
             const el = node.parentElement;
 
-            // ❌ 排除 h3（作者名/楼层标题）
+            // 排除 h3（作者名/楼层标题）
             if (el.tagName === 'H3') {{
                 return NodeFilter.FILTER_REJECT;
             }}
 
-            // ❌ 排除：紧跟 h3 的"作者信息 p"，且必须包含"楼"和"时间"
+            // 排除：紧跟 h3 的"作者信息 p"，且必须包含"楼"和"时间"
             if (el.tagName === 'P') {{
                 let prev = el.previousElementSibling;
 

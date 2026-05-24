@@ -1,4 +1,3 @@
-import os
 import json
 import shutil
 from pathlib import Path
@@ -65,7 +64,7 @@ class IndexManager:
             Exception: 如果保存索引失败。
         """
         try:
-            if os.path.exists(self.index_file):
+            if self.index_file.exists():
                 backup_file = self.index_file.with_suffix('.json.bak')
                 shutil.copy2(self.index_file, backup_file)
 
@@ -198,16 +197,16 @@ class IndexManager:
             logger.info(f"开始删除帖子: {display_name}")
             
             # 2. 删除 JSON 文件
-            json_full_path = os.path.join("data", file_path)
-            if os.path.exists(json_full_path):
-                os.remove(json_full_path)
+            json_full_path = self.data_dir / file_path
+            if json_full_path.exists():
+                json_full_path.unlink()
             else:
                 logger.warning(f"JSON 文件不存在: {json_full_path}")
             
             # 3. 删除图片目录
             mode_suffix = "see_lz" if see_lz else "full"
-            images_dir = os.path.join("data", "images", f"{post_id}_{mode_suffix}")
-            if os.path.exists(images_dir):
+            images_dir = self.data_dir / "images" / f"{post_id}_{mode_suffix}"
+            if images_dir.exists():
                 shutil.rmtree(images_dir)
             else:
                 logger.warning(f"图片目录不存在: {images_dir}")
@@ -215,15 +214,15 @@ class IndexManager:
             # 4. 删除 Markdown 文件
             # Markdown 文件名与 JSON 同名（仅后缀不同）
             md_full_path = json_to_md_path(file_path)
-            if os.path.exists(md_full_path):
-                os.remove(md_full_path)
+            if md_full_path.exists():
+                md_full_path.unlink()
             else:
                 logger.warning(f"Markdown 文件不存在: {md_full_path}")
 
             # 5. 删除补丁文件（如存在）
             patch_path = PATCHES_DIR / f"{Path(file_path).stem}.patch.json"
             if patch_path.exists():
-                os.remove(patch_path)
+                patch_path.unlink()
 
             # 6. 从索引中移除
             del index[index_key]
