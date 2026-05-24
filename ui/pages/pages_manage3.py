@@ -455,7 +455,6 @@ class PageManage(QWidget):
 
     def open_markdown_in_viewer(self, file_path: str, display_name: str):
         """在独立窗口中打开 Markdown 阅读器"""
-        from spider.utils import json_to_md_path
         
         md_path = json_to_md_path(file_path)
         if not md_path.exists():
