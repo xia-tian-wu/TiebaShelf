@@ -20,6 +20,8 @@ import asyncio
 
 from ui.pages.functions.toggle_switch import ToggleSwitch
 
+from config import MARKDOWN_DIR
+
 class ManageItemWidget(QWidget):
     """单个帖子的管理项（含按钮）"""
     update_requested = Signal(str)      # post_key
@@ -109,7 +111,7 @@ class ManageItemWidget(QWidget):
 
         # 添加"打开所在文件夹"
         open_folder_action = QAction("浏览本地MD资源文件夹", self)
-        open_folder_action.triggered.connect(self.open_post_folder)
+        open_folder_action.triggered.connect(self.open_md_folder)
         menu.addAction(open_folder_action)
 
         # 添加"导出帖子"
@@ -187,13 +189,14 @@ class ManageItemWidget(QWidget):
         else:
             QMessageBox.warning(self, "提示", f"找不到本地文件：\n{md_file}")
     
-    def open_post_folder(self):
-        """打开文件所在的文件夹"""
+    def open_md_folder(self):
+        """打开MD文件所在的文件夹"""
         _, folder_path = self.get_md_path()
         if folder_path.exists():
             os.startfile(folder_path)
         else:
-            QMessageBox.warning(self, "提示", "文件夹尚未创建或已被删除")
+            QMessageBox.warning(self, "提示", "Markdown 目录不存在，已尝试重新打开")
+            os.startfile(MARKDOWN_DIR)  # 打开默认 Markdown 目录
 
     def export_post(self):
         """导出当前帖子"""

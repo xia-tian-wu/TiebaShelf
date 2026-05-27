@@ -65,15 +65,12 @@
             color: #2c3e50;
             font-weight: 600;
         }
-        /* 替代grid布局 */
-        .guide-table {
+        .guide-cards {
             width: 100%;
-            border-spacing: 15px;  /* 替代原grid的gap */
             margin-top: 20px;
         }
-        .guide-table td {
-            width: 50%;
-            vertical-align: top;
+        .guide-cards .guide-card {
+            margin-bottom: 15px;
         }
         /* 操作指南卡片 */
         .guide-card {
@@ -130,7 +127,7 @@
 <body>
     <!-- 头部 -->
     <div class="header">
-        <h1>TiebaShelf v2.4</h1>
+        <h1>TiebaShelf v2.6</h1>
         <div class="version">贴吧内容归档与管理工具</div>
     </div>
     
@@ -153,41 +150,44 @@
     <!-- 操作指南 - 表格替代grid布局 -->
     <div class="section">
         <h2>简要操作指南</h2>
-        <p>工具分为两个核心模块：<b>爬取</b>与<b>管理</b>，分别对应内容的获取与本地帖子操作。</p>
+        <p>工具分为三个功能模块：<b>爬取</b>、<b>管理</b>与<b>导入</b>，分别对应内容的获取、本地帖子操作与数据迁移。</p>
         
-        <table class="guide-table">
-            <tr>
-                <!-- 爬取模块 -->
-                <td>
-                    <div class="guide-card">
-                        <h3>爬取模块</h3>
-                        <ul>
-                            <li>在左侧导航栏选择 <b>爬取</b> 页面</li>
-                            <li>输入目标帖子的完整链接，链接可通过<b>浏览器地址栏复制</b>或<b>鼠标右键菜单的复制链接功能</b>获得</li>
-                            <li>根据需求勾选<b>只看楼主</b>选项，以过滤其他用户的回复</li>
-                            <li>点击 <b>开始爬取</b> 按钮启动抓取进程</li>
-                            <li><b>测试URL</b>功能用于验证输入链接是否为有效的贴吧帖子地址</li>
-                            <li>右侧日志区域实时显示爬取状态、进度及可能的错误信息</li>
-                            <li>保存格式为<a href="https://markdown.com.cn/intro.html#markdown" target="_blank">Markdown</a>，最终结果不包含任贴吧表情和楼中楼回复</li>
-                        </ul>
-                    </div>
-                </td>
-                <!-- 管理模块 -->
-                <td>
-                    <div class="guide-card">
-                        <h3>管理模块</h3>
-                        <ul>
-                            <li>在左侧导航栏选择 <b>管理</b> 页面</li>
-                            <li>可对已存档的帖子执行三种核心操作：<b>增量爬取</b>（获取新回复）、<b>重新爬取</b>（覆盖更新）、<b>删除</b>（移除存档）</li>
-                            <li>在帖子条目上点击右键，可调出上下文菜单，提供<b>打开本地浏览</b>、<b>复制链接</b>、<b>修改内容</b>等操作</li>
-                            <li><b>批量模式</b>下，可勾选多个帖子进行统一操作</li>
-                            <li>提供按模式、关键字搜索帖子</li>
-                            <li>支持<b>左键点击帖子</b>直接打开浏览，也兼容使用本地默认 Markdown 渲染的编辑器（如 <b>VS Code</b>、<b>Obsidian</b>）</li>
-                        </ul>
-                    </div>
-                </td>
-            </tr>
-        </table>
+        <div class="guide-cards">
+            <div class="guide-card">
+                <h3>爬取模块</h3>
+                <ul>
+                    <li>在左侧导航栏选择 <b>爬取</b> 页面</li>
+                    <li>输入目标帖子的完整链接，链接可通过<b>浏览器地址栏复制</b>或<b>鼠标右键菜单的复制链接功能</b>获得</li>
+                    <li>根据需求勾选<b>只看楼主</b>选项，以过滤其他用户的回复</li>
+                    <li>点击 <b>开始爬取</b> 按钮启动抓取进程</li>
+                    <li><b>测试URL</b>功能用于验证输入链接是否为有效的贴吧帖子地址</li>
+                    <li>右侧日志区域实时显示爬取状态、进度及可能的错误信息</li>
+                    <li>保存格式为<a href="https://markdown.com.cn/intro.html#markdown" target="_blank">Markdown</a>，最终结果不包含任贴吧表情和楼中楼回复</li>
+                </ul>
+            </div>
+            <div class="guide-card">
+                <h3>管理模块</h3>
+                <ul>
+                    <li>在左侧导航栏选择 <b>管理</b> 页面</li>
+                    <li>可对已存档的帖子执行三种核心操作：<b>增量爬取</b>（获取新回复）、<b>重新爬取</b>（覆盖更新）、<b>删除</b>（移除存档）</li>
+                    <li>在帖子条目上点击右键，可调出上下文菜单，提供<b>打开本地浏览</b>、<b>复制链接</b>、<b>修改内容</b>、<b>导出</b>、<b>浏览器打开原贴</b>等操作</li>
+                    <li><b>批量模式</b>下，可勾选多个帖子进行统一操作</li>
+                    <li>提供按模式、关键字搜索帖子</li>
+                    <li>支持<b>左键点击帖子</b>直接打开浏览，也兼容使用本地默认 Markdown 渲染的编辑器（如 <b>VS Code</b>、<b>Obsidian</b>）</li>
+                </ul>
+            </div>
+            <div class="guide-card">
+                <h3>导入模块</h3>
+                <ul>
+                    <li>在左侧导航栏选择 <b>导入</b> 页面</li>
+                    <li>选择 <b>TiebaShelf_share_xxx</b> 导出文件夹</li>
+                    <li>系统自动校验数据完整性（JSON / Markdown / 图片）</li>
+                    <li>勾选需要导入的帖子，支持按需选择</li>
+                    <li>已存在帖子会提示覆盖确认，可对比本地与导入版本的楼层数</li>
+                    <li>导入时保留本地 <b>最后抓取时间</b>，不覆盖已有进度</li>
+                </ul>
+            </div>
+        </div>
     </div>
     
     <!-- 统一黄色提示区域 - 整合问题反馈/反馈内容/使用须知 -->
