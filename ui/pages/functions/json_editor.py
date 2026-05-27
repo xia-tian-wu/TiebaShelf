@@ -19,6 +19,7 @@ from PySide6.QtGui import QIcon
 from config import MARKDOWN_DIR, IMAGES_DIR, PATCHES_DIR, SOURCE_PATH
 from logger import logger
 from markdown_builder import _render_markdown_from_post_data
+from spider.utils import post_subdir_name
 
 
 class JsonEditorWindow(QMainWindow):
@@ -48,16 +49,20 @@ class JsonEditorWindow(QMainWindow):
         with open(self.json_path, 'r', encoding='utf-8') as f:
             self.post_data = json.load(f)
 
+        post_id = self.post_data['post_id']
+        see_lz = self.post_data.get('see_lz', False)
+        subdir = post_subdir_name(post_id, see_lz)
+        self.patch_image_dir = PATCHES_DIR / subdir
+        self.patch_image_dir.mkdir(parents=True, exist_ok=True)
+
         stored_dir = self.post_data.get('images_dir', '')
         if not stored_dir or not Path(stored_dir).exists():
-            post_id = self.post_data['post_id']
-            mode_suffix = 'see_lz' if self.post_data.get('see_lz') else 'full'
-            self.image_dir = IMAGES_DIR / f"{post_id}_{mode_suffix}"
+            self.image_dir = IMAGES_DIR / subdir
             self.image_dir.mkdir(parents=True, exist_ok=True)
         else:
             self.image_dir = Path(stored_dir)
 
-        self.patch_path = PATCHES_DIR / f"{self.json_path.stem}.patch.json"
+        self.patch_path = PATCHES_DIR / subdir / "patch.json"
         self.patch_data = self._load_patch()
 
         for floor in self.post_data['floors']:
@@ -136,7 +141,7 @@ class JsonEditorWindow(QMainWindow):
         spacer_left.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         toolbar.addWidget(spacer_left)
 
-        hint_label = QLabel("请勿手动修改 [图片：] 标记，应通过图片列表管理")
+        hint_label = QLabel("请勿手动修改 [图片：] / [补丁：] 标记，应通过图片列表管理，图片删除不可恢复")
         hint_label.setStyleSheet("color: #999; font-size: 12px;")
         toolbar.addWidget(hint_label)
 
@@ -236,7 +241,7 @@ class JsonEditorWindow(QMainWindow):
                 self.floor_info_label.hide()
                 if self.current_floor_widget:
                     self.current_floor_widget.deleteLater()
-                self.current_floor_widget = FloorEditWidget(floor, self.image_dir, self)
+                self.current_floor_widget = FloorEditWidget(floor, self.image_dir, self.patch_image_dir, self)
                 self.current_floor_widget.modification_changed.connect(self._on_floor_modified)
                 self.scroll.setWidget(self.current_floor_widget)
                 self.floor_widgets[floor_num] = self.current_floor_widget
@@ -352,16 +357,18 @@ class JsonEditorWindow(QMainWindow):
             return
 
         try:
-            self.patch_path.unlink()
+            patch_dir = self.patch_path.parent
+            if patch_dir.exists():
+                shutil.rmtree(patch_dir)
         except Exception as e:
-            QMessageBox.critical(self, "撤销失败", f"删除补丁文件失败:\n{e}")
+            QMessageBox.critical(self, "撤销失败", f"删除补丁目录失败:\n{e}")
             return
 
         with open(self.json_path, 'r', encoding='utf-8') as f:
             self.post_data = json.load(f)
         self.patch_data = None
         self._rebuild_markdown()
-        logger.info(f"已撤销修改，补丁文件已删除: {Path(self.patch_path).name}")
+        logger.info(f"已撤销修改，补丁文件已删除: {self.patch_path.parent.name}/patch.json")
         self.close()
 
     def _save_and_close(self):
@@ -389,7 +396,7 @@ class JsonEditorWindow(QMainWindow):
         try:
             with open(self.patch_path, 'w', encoding='utf-8') as f:
                 json.dump(self.patch_data, f, ensure_ascii=False, indent=2)
-            logger.info(f"补丁文件已保存，同步更新: {Path(self.patch_path).name}")
+            logger.info(f"补丁文件已保存，同步更新: {self.patch_path.parent.name}/patch.json")
 
             self._rebuild_markdown()
 
@@ -423,10 +430,11 @@ class JsonEditorWindow(QMainWindow):
 
         post_id = merged['post_id']
         see_lz = merged.get('see_lz', False)
-        mode_suffix = "see_lz" if see_lz else "full"
-        image_abs_dir = IMAGES_DIR / f"{post_id}_{mode_suffix}"
+        subdir = post_subdir_name(post_id, see_lz)
+        image_abs_dir = IMAGES_DIR / subdir
+        patch_image_abs_dir = PATCHES_DIR / subdir
 
-        md_content = _render_markdown_from_post_data(merged, image_abs_dir)
+        md_content = _render_markdown_from_post_data(merged, image_abs_dir, patch_image_abs_dir=patch_image_abs_dir)
 
         md_path = MARKDOWN_DIR / f"{self.json_path.stem}.md"
         MARKDOWN_DIR.mkdir(parents=True, exist_ok=True)
@@ -492,10 +500,11 @@ class FloorEditWidget(QWidget):
 
     modification_changed = Signal()
 
-    def __init__(self, floor_data: dict, image_dir: Path, parent=None):
+    def __init__(self, floor_data: dict, image_dir: Path, patch_image_dir: Path, parent=None):
         super().__init__(parent)
         self.floor_data = floor_data
         self.image_dir = image_dir
+        self.patch_image_dir = patch_image_dir
         self.saved_state = dict(floor_data)
         self.images = list(floor_data.get('images', []))
         self.local_images = list(floor_data.get('local_images', []))
@@ -570,13 +579,14 @@ class FloorEditWidget(QWidget):
         self.modification_changed.emit()
 
     def _sync_content_to_images(self):
-        """根据 content 中的 [图片：xxx] 标签同步 local_images 列表。"""
+        """根据 content 中的 [图片：] / [补丁：] 标签同步 local_images 列表。"""
         content = self.content_edit.toPlainText()
-        found_images = re.findall(r'\[图片：([^\]]+)\]', content)
+        found_crawl = re.findall(r'\[图片：([^\]]+)\]', content)
+        found_patch = re.findall(r'\[补丁：([^\]]+)\]', content)
 
         current_filenames = [Path(p).name for p in self.local_images]
 
-        for fn in found_images:
+        for fn in found_crawl:
             if fn not in current_filenames:
                 full_path = self.image_dir / fn
                 if full_path.exists():
@@ -584,9 +594,17 @@ class FloorEditWidget(QWidget):
                     self.images.append(str(full_path))
                     self._refresh_image_list()
 
+        for fn in found_patch:
+            if fn not in current_filenames:
+                full_path = self.patch_image_dir / fn
+                if full_path.exists():
+                    self.local_images.append(str(full_path))
+                    self.images.append(str(full_path))
+                    self._refresh_image_list()
+
         for i in range(len(self.local_images) - 1, -1, -1):
             fn = Path(self.local_images[i]).name
-            if fn not in found_images:
+            if fn not in found_crawl and fn not in found_patch:
                 self.local_images.pop(i)
                 self.images.pop(i)
 
@@ -644,7 +662,7 @@ class FloorEditWidget(QWidget):
         self.image_group.setTitle(f"图片 ({count}张)")
 
     def _add_image(self):
-        """选择图片文件 → 复制到项目目录 → 追加到 content 末尾。"""
+        """选择图片文件 → 复制到补丁目录 → 追加 [补丁：] 到 content 末尾。"""
         files, _ = QFileDialog.getOpenFileNames(
             self, "选择图片", "", "图片文件 (*.jpg *.jpeg *.png *.gif *.bmp *.webp)"
         )
@@ -654,14 +672,14 @@ class FloorEditWidget(QWidget):
         for file_path in files:
             src = Path(file_path)
             filename = src.name
-            dest_path = self.image_dir / filename
+            dest_path = self.patch_image_dir / filename
 
             if dest_path.exists():
                 base = src.stem
                 ext = src.suffix
                 counter = 1
                 while dest_path.exists():
-                    dest_path = self.image_dir / f"{base}_{counter}{ext}"
+                    dest_path = self.patch_image_dir / f"{base}_{counter}{ext}"
                     counter += 1
 
             try:
@@ -679,7 +697,7 @@ class FloorEditWidget(QWidget):
             current_content = self.content_edit.toPlainText()
             if current_content and not current_content.endswith('\n'):
                 self.content_edit.append("")
-            self.content_edit.append(f"[图片：{new_filename}]")
+            self.content_edit.append(f"[补丁：{new_filename}]")
             self.content_edit.blockSignals(False)
 
         self._refresh_image_list()
@@ -695,6 +713,8 @@ class FloorEditWidget(QWidget):
 
         self.content_edit.blockSignals(True)
         content = self.content_edit.toPlainText()
+        if tag not in content:
+            tag = f"[补丁：{filename}]"
         if tag in content:
             content = content.replace(tag, "", 1)
             self.content_edit.setPlainText(content)
@@ -707,19 +727,23 @@ class FloorEditWidget(QWidget):
         self.modification_changed.emit()
 
     def _preview_image(self, stored_path):
-        """用系统默认程序打开图片。优先使用存储路径，失败则尝试在当前图片目录查找。"""
+        """用系统默认程序打开图片。优先使用存储路径，失败则尝试在图片目录或补丁目录查找。"""
         p = Path(stored_path)
         if p.exists():
             self._open_file(p)
             return
 
-        # 回退：尝试在当前图片目录中按文件名查找
+        # 回退：按文件名查找
         filename = p.name
         fallback_path = self.image_dir / filename
         if fallback_path.exists():
             self._open_file(fallback_path)
         else:
-            QMessageBox.warning(self, "提示", f"图片文件不存在:\n{stored_path}\n\n也未在 {self.image_dir.name} 中找到 {filename}")
+            fallback_path = self.patch_image_dir / filename
+            if fallback_path.exists():
+                self._open_file(fallback_path)
+            else:
+                QMessageBox.warning(self, "提示", f"图片文件不存在:\n{stored_path}\n\n也未在 {self.image_dir.name} 或 {self.patch_image_dir.name} 中找到 {filename}")
 
     def _open_file(self, path):
         """调用系统默认程序打开文件。"""

@@ -102,6 +102,11 @@ def get_display_name(title: str, see_lz: bool, for_filename: bool = False) -> st
         return get_safe_filename_part(display_name, max_len=50)
     return display_name
 
+def post_subdir_name(post_id: str, see_lz: bool) -> str:
+    """生成帖子资源子目录名，如 '10287031162_see_lz'。"""
+    mode = "see_lz" if see_lz else "full"
+    return f"{post_id}_{mode}"
+
 def get_safe_filename(post_id: str, see_lz: bool, title: str = "") -> str:
     """
     生成安全的帖子JSON文件名（过滤非法字符、截断过长标题）。
@@ -120,7 +125,7 @@ def get_safe_filename(post_id: str, see_lz: bool, title: str = "") -> str:
     Returns:
         安全的文件名字符串
     """
-    base_name = f"{post_id}_{'see_lz' if see_lz else 'full'}"
+    base_name = post_subdir_name(post_id, see_lz)
     if title and title != "未知标题":
         safe_title = get_safe_filename_part(title, max_len=30)
         return f'{safe_title}_{base_name}.json'

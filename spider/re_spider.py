@@ -15,7 +15,7 @@ from logger import logger
 from spider.type_models import PostData, FloorData, PostIndex
 from spider.index_manage import IndexManager
 from spider.image_link import TiebaImageDownloader
-from spider.utils import extract_posts_id, get_safe_filename
+from spider.utils import extract_posts_id, get_safe_filename, post_subdir_name
 from markdown_builder import convert_post_json_to_markdown
 import spider.exceptions as ex
 
@@ -114,8 +114,7 @@ class TiebaShelf:
         Returns:
             图片目录的绝对路径
         """
-        mode_suffix = 'see_lz' if mode else 'full'
-        return str(IMAGES_DIR / f"{post_id}_{mode_suffix}")
+        return str(IMAGES_DIR / post_subdir_name(post_id, mode))
 
     def convert_post_to_floordata(self, post: Post, kw: str, tid: int) -> Tuple[FloorData, List[str]]:
         """
@@ -241,8 +240,7 @@ class TiebaShelf:
                 return None
 
             # 4. 下载图片
-            mode_suffix = "see_lz" if current_see_lz else "full"
-            save_dir = IMAGES_DIR / f"{tid}_{mode_suffix}"
+            save_dir = IMAGES_DIR / post_subdir_name(tid, current_see_lz)
 
             async with TiebaImageDownloader() as downloader:
                 success_count, _ = await downloader.download_and_backfill(

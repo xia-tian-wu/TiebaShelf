@@ -5,7 +5,7 @@ from logger import logger
 from typing import Dict
 from spider.type_models import PostData, PostIndex, FloorData
 
-from spider.utils import extract_posts_id, get_safe_filename, get_display_name, json_to_md_path
+from spider.utils import extract_posts_id, get_safe_filename, get_display_name, json_to_md_path, post_subdir_name
 from config import DATA_DIR, PATCHES_DIR
 
 class IndexManager:
@@ -223,8 +223,8 @@ class IndexManager:
                 logger.warning(f"JSON 文件不存在: {json_full_path}")
             
             # 3. 删除图片目录
-            mode_suffix = "see_lz" if see_lz else "full"
-            images_dir = self.data_dir / "images" / f"{post_id}_{mode_suffix}"
+            subdir = post_subdir_name(post_id, see_lz)
+            images_dir = self.data_dir / "images" / subdir
             if images_dir.exists():
                 shutil.rmtree(images_dir)
             else:
@@ -238,10 +238,14 @@ class IndexManager:
             else:
                 logger.warning(f"Markdown 文件不存在: {md_full_path}")
 
-            # 5. 删除补丁文件（如存在）
-            patch_path = PATCHES_DIR / f"{Path(file_path).stem}.patch.json"
-            if patch_path.exists():
-                patch_path.unlink()
+            # 5. 删除补丁目录（含 patch.json 和补丁图片）
+            patch_dir = PATCHES_DIR / subdir
+            if patch_dir.exists():
+                shutil.rmtree(patch_dir)
+            else:
+                patch_path = PATCHES_DIR / f"{Path(file_path).stem}.patch.json"
+                if patch_path.exists():
+                    patch_path.unlink()
 
             # 6. 从索引中移除
             del index[index_key]

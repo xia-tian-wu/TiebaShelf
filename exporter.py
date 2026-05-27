@@ -8,7 +8,7 @@ from config import DATA_DIR, IMAGES_DIR
 from logger import logger
 from markdown_builder import convert_post_json_to_markdown
 from spider.index_manage import IndexManager
-from spider.utils import get_display_name
+from spider.utils import get_display_name, post_subdir_name
 
 
 def export_posts(post_keys: List[str], export_root: str | Path, index_manager: IndexManager):
@@ -63,8 +63,7 @@ def export_posts(post_keys: List[str], export_root: str | Path, index_manager: I
     for post_key, post_info, json_path in posts_meta:
         post_id = post_info['post_id']
         see_lz = post_info['see_lz']
-        mode_suffix = "see_lz" if see_lz else "full"
-        image_subdir_name = f"{post_id}_{mode_suffix}"
+        image_subdir_name = post_subdir_name(post_id, see_lz)
 
         # 1. 先复制图片目录，再以导出 images/ 为基准渲染 MD
         src_images = IMAGES_DIR / image_subdir_name

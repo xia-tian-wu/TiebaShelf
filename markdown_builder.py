@@ -5,6 +5,7 @@ from pathlib import Path
 from urllib.parse import quote
 from config import MARKDOWN_DIR, IMAGES_DIR, PATCHES_DIR
 from spider.type_models import PostData
+from spider.utils import post_subdir_name
 
 def convert_post_json_to_markdown(
     json_path: str | Path,
@@ -33,11 +34,12 @@ def convert_post_json_to_markdown(
     
     post_id = post_data['post_id']
     see_lz = post_data.get('see_lz', False)
-    mode_suffix = "see_lz" if see_lz else "full"
-    image_abs_dir = (image_base_dir or IMAGES_DIR) / f"{post_id}_{mode_suffix}"
+    subdir = post_subdir_name(post_id, see_lz)
+    image_abs_dir = (image_base_dir or IMAGES_DIR) / subdir
+    patch_image_abs_dir = PATCHES_DIR / subdir if apply_patch else None
     
     md_dir = output_md_dir or MARKDOWN_DIR
-    md_content = _render_markdown_from_post_data(post_data, image_abs_dir, markdown_base_dir=md_dir)
+    md_content = _render_markdown_from_post_data(post_data, image_abs_dir, markdown_base_dir=md_dir, patch_image_abs_dir=patch_image_abs_dir)
     
     md_filename = f'{json_path.stem}.md'
     md_path = md_dir / md_filename
@@ -50,7 +52,8 @@ def convert_post_json_to_markdown(
 def _render_markdown_from_post_data(
     post_data: PostData,
     image_abs_dir: Path,
-    markdown_base_dir: Path | None = None
+    markdown_base_dir: Path | None = None,
+    patch_image_abs_dir: Path | None = None,
 ) -> str:
     """将帖子数据渲染为 Markdown 文本。
 
@@ -58,6 +61,7 @@ def _render_markdown_from_post_data(
         post_data: 帖子数据（含楼层列表）。
         image_abs_dir: 图片目录的绝对路径。
         markdown_base_dir: 计算图片相对路径的基准目录，默认 MARKDOWN_DIR。
+        patch_image_abs_dir: 补丁图片目录的绝对路径，传入后额外解析 [补丁：] 标签。
 
     Returns:
         Markdown 文本。
@@ -82,6 +86,26 @@ def _render_markdown_from_post_data(
     )
     lines.append('---\n')
     
+    # 基准目录，用于计算图片的相对路径
+    md_base = markdown_base_dir or MARKDOWN_DIR
+
+    def _make_image_replacer(image_dir: Path, tag_name: str):
+        """生成一个用于 re.sub 的替换函数，将 [标签：文件名] 转为 Markdown 图片语法"""
+        def replacer(match):
+            img_filename = match.group(1)
+            img_abs_path = image_dir / img_filename
+
+            if not img_abs_path.exists():
+                return f"[{tag_name}：{img_filename} (未找到)]"
+
+            rel_path = os.path.relpath(img_abs_path, md_base).replace("\\", "/")
+            rel_path = quote(rel_path, safe="/")
+            return f"![image]({rel_path})"
+        return replacer
+
+    replace_image = _make_image_replacer(image_abs_dir, "图片")
+    replace_patch = _make_image_replacer(patch_image_abs_dir, "补丁") if patch_image_abs_dir else None
+
     for floor in post_data["floors"]:
         floor_num = floor["floor_number"]
         author = floor["author"]
@@ -101,22 +125,12 @@ def _render_markdown_from_post_data(
         
         lines.append(f"### {author} \n{floor_meta_str}\n")
         
-        # 替换 [图片：xxx.jpg] 为 ![image](相对路径) 
-        def replace_image_tag(match):
-            img_filename = match.group(1)
-            img_abs_path = image_abs_dir / img_filename
-
-            if not img_abs_path.exists():
-                return f"[图片：{img_filename} (未找到)]"
-
-            md_base = markdown_base_dir or MARKDOWN_DIR
-            rel_path = os.path.relpath(img_abs_path, md_base).replace("\\", "/")
-            rel_path = quote(rel_path, safe="/")
-            return f"![image]({rel_path})"
-        
-        renderded_content = re.sub(r'\[图片：([^\]]+)\]', replace_image_tag, content)
-        renderded_content = renderded_content.replace('\n', '  \n')
-        lines.append(renderded_content.strip() or '「该楼层无内容」')
+        # 替换图片标签
+        rendered_content = re.sub(r'\[图片：([^\]]+)\]', replace_image, content)
+        if replace_patch:
+            rendered_content = re.sub(r'\[补丁：([^\]]+)\]', replace_patch, rendered_content)
+        rendered_content = rendered_content.replace('\n', '  \n')
+        lines.append(rendered_content.strip() or '「该楼层无内容」')
         lines.append('\n---\n')
     
     return '\n'.join(lines)
@@ -127,9 +141,13 @@ def _apply_patch_if_exists(json_path: Path, post_data: dict) -> dict:
     如果存在补丁文件，则应用补丁到帖子数据。
     补丁文件统一存放在 PATCHES_DIR 目录下。
     """
-    patch_path = PATCHES_DIR / f"{json_path.stem}.patch.json"
+    post_id = post_data.get('post_id', '')
+    see_lz = post_data.get('see_lz', False)
+    patch_path = PATCHES_DIR / post_subdir_name(post_id, see_lz) / "patch.json"
     if not patch_path.exists():
-        return post_data
+        patch_path = PATCHES_DIR / f"{json_path.stem}.patch.json"
+        if not patch_path.exists():
+            return post_data
     
     try:
         with open(patch_path, 'r', encoding='utf-8') as f:
