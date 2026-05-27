@@ -5,12 +5,14 @@ from pathlib import Path
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
     QLabel, QPushButton, QCheckBox, QFrame, QMessageBox, QSizePolicy,
-    QAbstractItemView, QMenu, QApplication, QComboBox, QLineEdit
+    QAbstractItemView, QMenu, QApplication, QComboBox, QLineEdit,
+    QFileDialog
 )
 from PySide6.QtCore import Qt, Signal, QThread, QSize, Slot
 from PySide6.QtGui import QContextMenuEvent, QCursor, QAction, QGuiApplication, QMouseEvent
 from spider.index_manage import IndexManager
 from spider.utils import json_to_md_path
+from exporter import export_posts
 from ui.pages.functions.async_worker import AsyncWorker
 from ui.pages.markdown_viewer_page import MarkdownViewerWindow
 from logger import logger
@@ -109,7 +111,12 @@ class ManageItemWidget(QWidget):
         open_folder_action = QAction("浏览本地MD资源文件夹", self)
         open_folder_action.triggered.connect(self.open_post_folder)
         menu.addAction(open_folder_action)
-        
+
+        # 添加"导出帖子"
+        export_action = QAction("导出帖子", self)
+        export_action.triggered.connect(self.export_post)
+        menu.addAction(export_action)
+
         menu.addSeparator()
         
         # 添加“复制链接”
@@ -187,6 +194,17 @@ class ManageItemWidget(QWidget):
             os.startfile(folder_path)
         else:
             QMessageBox.warning(self, "提示", "文件夹尚未创建或已被删除")
+
+    def export_post(self):
+        """导出当前帖子"""
+        folder = QFileDialog.getExistingDirectory(self, "选择导出保存位置")
+        if not folder:
+            return
+        result = export_posts([self.post_key], folder, IndexManager())
+        if result:
+            QMessageBox.information(self, "导出成功", f"帖子已导出到：\n{result}")
+        else:
+            QMessageBox.warning(self, "导出失败", "导出过程中出现错误，请查看日志")
 
     def open_json_editor(self):
         """打开JSON编辑器"""
@@ -351,15 +369,15 @@ class PageManage(QWidget):
         self.batch_update_btn = QPushButton("批量增量更新")
         self.batch_recrawl_btn = QPushButton("批量重新爬取")
         self.batch_delete_btn = QPushButton("批量删除")
-        self.batch_cancel_btn = QPushButton("取消选择")
+        self.batch_export_btn = QPushButton("批量导出")
 
         # 批量操作按钮事件
         self.batch_update_btn.clicked.connect(self.batch_update)
         self.batch_recrawl_btn.clicked.connect(self.batch_recrawl)
         self.batch_delete_btn.clicked.connect(self.batch_delete)
-        self.batch_cancel_btn.clicked.connect(self.clear_selection)
+        self.batch_export_btn.clicked.connect(self.batch_export)
 
-        for btn in [self.batch_update_btn, self.batch_recrawl_btn, self.batch_delete_btn, self.batch_cancel_btn]:
+        for btn in [self.batch_update_btn, self.batch_recrawl_btn, self.batch_delete_btn, self.batch_export_btn]:
             batch_btn_layout.addWidget(btn)
 
         self.batch_button_bar.hide()
@@ -529,7 +547,7 @@ class PageManage(QWidget):
         self.batch_update_btn.setEnabled(has_selection)
         self.batch_recrawl_btn.setEnabled(has_selection)
         self.batch_delete_btn.setEnabled(has_selection)
-        self.batch_cancel_btn.setEnabled(has_selection)
+        self.batch_export_btn.setEnabled(has_selection)
 
     def clear_selection(self):
         """清空选择，同时更新UI"""
@@ -562,7 +580,7 @@ class PageManage(QWidget):
         self.batch_update_btn.setEnabled(False)
         self.batch_recrawl_btn.setEnabled(False)
         self.batch_delete_btn.setEnabled(False)
-        self.batch_cancel_btn.setEnabled(False)
+        self.batch_export_btn.setEnabled(False)
         
         # 禁用刷新按钮
         self.refresh_btn.setEnabled(False)
@@ -808,6 +826,27 @@ class PageManage(QWidget):
                 self.status_label.setText(f"批量删除失败: {str(e)}")
                 self.enable_all_controls()
                 self.is_task_running = False
+
+    def batch_export(self):
+        """批量导出"""
+        if not self.selected_keys:
+            QMessageBox.information(self, "提示", "请先选择要导出的帖子。")
+            return
+
+        if len(self.selected_keys) > 12:
+            QMessageBox.warning(self, "超出限制", f"批量导出最多支持 12 个帖子，当前选择了 {len(self.selected_keys)} 个。")
+            return
+
+        folder = QFileDialog.getExistingDirectory(self, "选择导出保存位置")
+        if not folder:
+            return
+
+        result = export_posts(list(self.selected_keys), folder, self.index_manager)
+        if result:
+            QMessageBox.information(self, "导出成功", f"已导出 {len(self.selected_keys)} 个帖子到：\n{result}")
+            self.clear_selection()
+        else:
+            QMessageBox.warning(self, "导出失败", "导出过程中出现错误，请查看日志")
 
     def start_async_task(self, new_urls=None, update_urls=None, recrawl_urls=None, post_keys=None, task_type="update"):
         """启动异步任务"""

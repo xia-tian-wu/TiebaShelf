@@ -6,12 +6,20 @@ from urllib.parse import quote
 from config import MARKDOWN_DIR, IMAGES_DIR, PATCHES_DIR
 from spider.type_models import PostData
 
-def convert_post_json_to_markdown(json_path: str | Path) -> str:
+def convert_post_json_to_markdown(
+    json_path: str | Path,
+    output_md_dir: Path | None = None,
+    apply_patch: bool = True,
+    image_base_dir: Path | None = None,
+) -> str:
     """
     将单个帖子 JSON 文件转换为 Markdown，并保存到 markdowns/ 下。
     
     Args:
         json_path: 如 'data/posts/安全标题_7833341768_see_lz.json'
+        output_md_dir: 自定义输出目录，默认 MARKDOWN_DIR
+        apply_patch: 是否应用 patch，导出时为 False
+        image_base_dir: 图片基准目录，默认 IMAGES_DIR，导出时用 export/images/
     
     Returns:
         生成的 Markdown 文件路径
@@ -20,29 +28,36 @@ def convert_post_json_to_markdown(json_path: str | Path) -> str:
     with open(json_path, 'r', encoding='utf-8') as f:
         post_data = json.load(f)
     
-    post_data = _apply_patch_if_exists(json_path, post_data)
+    if apply_patch:
+        post_data = _apply_patch_if_exists(json_path, post_data)
     
     post_id = post_data['post_id']
     see_lz = post_data.get('see_lz', False)
     mode_suffix = "see_lz" if see_lz else "full"
-    image_abs_dir = IMAGES_DIR / f"{post_id}_{mode_suffix}"
+    image_abs_dir = (image_base_dir or IMAGES_DIR) / f"{post_id}_{mode_suffix}"
     
-    md_content = _render_markdown_from_post_data(post_data, image_abs_dir)
+    md_dir = output_md_dir or MARKDOWN_DIR
+    md_content = _render_markdown_from_post_data(post_data, image_abs_dir, markdown_base_dir=md_dir)
     
     md_filename = f'{json_path.stem}.md'
-    md_path = MARKDOWN_DIR / md_filename
+    md_path = md_dir / md_filename
     
-    MARKDOWN_DIR.mkdir(parents=True, exist_ok=True)
+    md_dir.mkdir(parents=True, exist_ok=True)
     with open(md_path, 'w', encoding='utf-8') as f:
         f.write(md_content)
     return str(md_path)
     
-def _render_markdown_from_post_data(post_data: PostData, image_abs_dir: Path) -> str:
+def _render_markdown_from_post_data(
+    post_data: PostData,
+    image_abs_dir: Path,
+    markdown_base_dir: Path | None = None
+) -> str:
     """将帖子数据渲染为 Markdown 文本。
 
     Args:
         post_data: 帖子数据（含楼层列表）。
         image_abs_dir: 图片目录的绝对路径。
+        markdown_base_dir: 计算图片相对路径的基准目录，默认 MARKDOWN_DIR。
 
     Returns:
         Markdown 文本。
@@ -94,7 +109,8 @@ def _render_markdown_from_post_data(post_data: PostData, image_abs_dir: Path) ->
             if not img_abs_path.exists():
                 return f"[图片：{img_filename} (未找到)]"
 
-            rel_path = os.path.relpath(img_abs_path, MARKDOWN_DIR).replace("\\", "/")
+            md_base = markdown_base_dir or MARKDOWN_DIR
+            rel_path = os.path.relpath(img_abs_path, md_base).replace("\\", "/")
             rel_path = quote(rel_path, safe="/")
             return f"![image]({rel_path})"
         

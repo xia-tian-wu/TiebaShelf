@@ -52,6 +52,7 @@ class TaskProgressManager:
 
     def show(self):
         self.progress_bar.show()
+        self.status_label.show()
         self.status_label.setStyleSheet("color: #4E4F52; font-weight: bold;")
         
     def finish_all(self):
@@ -68,5 +69,4 @@ class TaskProgressManager:
 
     def hide(self):
         self.progress_bar.hide()
-        self.status_label.setText("就绪")
-        self.status_label.setStyleSheet("color: gray; font-size: 12px;")
+        self.status_label.hide()

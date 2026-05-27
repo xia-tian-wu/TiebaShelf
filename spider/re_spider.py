@@ -237,7 +237,7 @@ class TiebaShelf:
             )
 
             if not new_floors:
-                logger.info(f"帖子《{post_sign}》没有新内容")
+                logger.info(f"帖子「{post_sign}」没有新内容")
                 return None
 
             # 4. 下载图片
@@ -323,7 +323,7 @@ class TiebaShelf:
             raise ex.NetworkError(f"获取帖子失败：{e}", url=f"https://tieba.baidu.com/p/{tid}")
 
         if not self.is_valid_post_page(first_resp):
-            logger.warning(f'《{post_sign}》 帖子可能已被删除或隐藏')
+            logger.warning(f'「{post_sign}」帖子可能已被删除或隐藏')
             raise ex.ParseError("帖子页面解析失败，可能帖子不存在或结构已变化", url=f"https://tieba.baidu.com/p/{tid}")
 
         total_page = first_resp.page.total_page
@@ -422,12 +422,12 @@ class TiebaShelf:
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(post_data, f, ensure_ascii=False, indent=2)
 
-        logger.info(f"帖子数据已保存：{post_data['title']}")
+        logger.info(f"帖子数据已保存：「{post_data['title']}」")
 
         # 2. 生成 Markdown
         try:
             md_path = convert_post_json_to_markdown(filepath)
-            logger.info(f"Markdown 已生成：{md_path}")
+            logger.info(f"Markdown 已生成：{Path(md_path).name}")
         except Exception as e:
             logger.error(f'Markdown 生成失败：{e}')
 

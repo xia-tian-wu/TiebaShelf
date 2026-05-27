@@ -361,7 +361,7 @@ class JsonEditorWindow(QMainWindow):
             self.post_data = json.load(f)
         self.patch_data = None
         self._rebuild_markdown()
-        logger.info(f"已撤销修改，补丁文件已删除: {self.patch_path}")
+        logger.info(f"已撤销修改，补丁文件已删除: {Path(self.patch_path).name}")
         self.close()
 
     def _save_and_close(self):
@@ -389,7 +389,7 @@ class JsonEditorWindow(QMainWindow):
         try:
             with open(self.patch_path, 'w', encoding='utf-8') as f:
                 json.dump(self.patch_data, f, ensure_ascii=False, indent=2)
-            logger.info(f"补丁文件已保存，同步更新: {self.patch_path}")
+            logger.info(f"补丁文件已保存，同步更新: {Path(self.patch_path).name}")
 
             self._rebuild_markdown()
 

@@ -110,12 +110,27 @@ class IndexManager:
             return post_id, see_lz
     
     
-    def add_to_index(self, post_data: PostData) -> None:
+    def post_exists(self, post_id: str, see_lz: bool) -> bool:
+        """检查帖子是否已在索引中。
+
+        Args:
+            post_id (str): 帖子 ID。
+            see_lz (bool): 是否只看楼主。
+
+        Returns:
+            bool: 是否存在。
+        """
+        index = self.load_index()
+        key = self.get_index_key(post_id, see_lz)
+        return key in index
+
+    def add_to_index(self, post_data: PostData, preserve_last_crawled: bool = False) -> None:
         """
         将帖子数据添加到索引中。
 
         Args:
             post_data (PostData): 帖子数据。
+            preserve_last_crawled (bool): 若为 True 且帖子已存在，保留本地的 last_crawled。
 
         Raises:
             Exception: 如果保存索引失败。
@@ -138,9 +153,13 @@ class IndexManager:
             'max_floor_number': post_data['max_floor_number']
         }
         index_key = self.get_index_key(post_data['post_id'], post_data['see_lz'])
+
+        if preserve_last_crawled and index_key in index:
+            index_entry['last_crawled'] = index[index_key]['last_crawled']
+
         index[index_key] = index_entry
         self.save_index(index)
-        logger.info(f"已添加到索引: {display_name}")
+        logger.info(f"已添加到索引: 「{display_name}」")
         
     def check_repeated_url(self, url: str, see_lz: bool = False) -> str:
         """
@@ -194,7 +213,7 @@ class IndexManager:
             post_meta = index[index_key]
             file_path = post_meta["file_path"]  # 如 "posts/xxx.json"
             display_name = post_meta["display_name"]
-            logger.info(f"开始删除帖子: {display_name}")
+            logger.info(f"开始删除帖子: 「{display_name}」")
             
             # 2. 删除 JSON 文件
             json_full_path = self.data_dir / file_path
@@ -227,7 +246,7 @@ class IndexManager:
             # 6. 从索引中移除
             del index[index_key]
             self.save_index(index)
-            logger.info(f"已从索引中移除: {display_name}")
+            logger.info(f"已从索引中移除: 「{display_name}」")
             
             return True
             

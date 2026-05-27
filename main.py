@@ -12,6 +12,7 @@ from ui.pages.functions.markdown_viewer import cleanup_stale_temp_html
 from ui.pages.pages_crawl import PageCrawl
 from ui.pages.functions.progress_manager import TaskProgressManager
 from ui.pages.pages_manage3 import PageManage
+from ui.pages.pages_import import PageImport
 from ui.pages.introduction_page import PageFuture
 from config import SOURCE_PATH
 from logger import setup_logger, add_ui_handler, remove_ui_handler, logger as global_logger
@@ -39,7 +40,7 @@ class MainWindow(QMainWindow):
         # --- 左侧：书签式导航 ---
         self.nav_list = QListWidget()
         self.nav_list.setObjectName("navigationList")
-        self.nav_list.addItems(["爬取", "管理", "项目介绍"])
+        self.nav_list.addItems(["爬取", "管理", "导入", "项目介绍"])
         self.nav_list.setFixedWidth(100)
         self.nav_list.currentRowChanged.connect(self.switch_page)
 
@@ -47,6 +48,7 @@ class MainWindow(QMainWindow):
         self.stacked_widget = QStackedWidget()
         self.global_status_label = QLabel("就绪")
         self.global_status_label.setStyleSheet("color: gray; font-size: 12px;")
+        self.global_status_label.hide()
 
         self.global_progress_bar = QProgressBar()
         self.global_progress_bar.setRange(0, 100)
@@ -69,6 +71,7 @@ class MainWindow(QMainWindow):
 
         self.stacked_widget.addWidget(PageCrawl(main_window=self))
         self.stacked_widget.addWidget(PageManage(main_window=self))
+        self.stacked_widget.addWidget(PageImport(main_window=self))
         self.stacked_widget.addWidget(PageFuture())
         self.middle_layout.addWidget(self.stacked_widget)
 
