@@ -99,7 +99,7 @@ class MarkdownViewerWindow(QMainWindow):
             viewer = MarkdownViewer()
 
             # 加载 Markdown 文件
-            if not viewer.load_markdown(md_path, display_name):
+            if not viewer.load_markdown(md_path):
                 viewer.deleteLater()
                 return False
 

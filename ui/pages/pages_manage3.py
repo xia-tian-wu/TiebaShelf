@@ -686,7 +686,7 @@ class PageManage(QWidget):
             reply = QMessageBox.question(
                 self, 
                 "确认删除", 
-                f"确定要删除帖子 '{post_info['display_name']}' 吗？\n此操作将删除所有相关数据。",
+                f"确定要删除帖子「'{post_info['display_name']}'」吗？\n此操作将删除所有相关数据。",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
             )
             
@@ -701,9 +701,9 @@ class PageManage(QWidget):
                 if success:
                     # 删除成功，重新加载列表
                     self.load_posts()
-                    self.status_label.setText(f"删除帖子 {post_info['display_name']} 成功")
+                    self.status_label.setText(f"删除帖子「{post_info['display_name']}」成功")
                 else:
-                    self.status_label.setText(f"删除帖子 {post_info['display_name']} 失败")
+                    self.status_label.setText(f"删除帖子「{post_info['display_name']}」失败")
                     
                 # 恢复控件状态
                 self.enable_all_controls()

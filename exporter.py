@@ -68,6 +68,7 @@ def export_posts(post_keys: List[str], export_root: str | Path, index_manager: I
         # 1. 先复制图片目录，再以导出 images/ 为基准渲染 MD
         src_images = IMAGES_DIR / image_subdir_name
         dst_images = export_images_dir / image_subdir_name
+        dst_images.mkdir(parents=True, exist_ok=True)  # 确保导出包有目录
         if src_images.exists():
             try:
                 shutil.copytree(src_images, dst_images, dirs_exist_ok=True)

@@ -5,6 +5,7 @@ from typing import Tuple
 
 from config import POSTS_DIR, IMAGES_DIR, MARKDOWN_DIR
 from logger import logger
+from markdown_builder import convert_post_json_to_markdown
 from spider.index_manage import IndexManager
 from spider.type_models import PostData
 
@@ -101,43 +102,82 @@ def import_selected(
             local_floor = existing.get('max_floor_number', '?')
             import_floor = post_entry.get('max_floor_number', '?')
 
-            reply = QMessageBox.question(
-                parent,
-                "帖子已存在",
+            msg_box = QMessageBox(parent)
+            msg_box.setWindowTitle("帖子已存在")
+            msg_box.setText(
                 f"帖子「{display_name}」本地已存在。\n"
                 f"本地版本：{local_floor}楼 | 导入版本：{import_floor}楼\n"
-                f"内容可能因抓取时间或不可控增删楼层而不同。\n"
-                f"是否用导入版本覆盖？",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                f"是否将导入内容合并到本地版本？"
             )
-            if reply == QMessageBox.StandardButton.No:
+            msg_box.addButton("合并", QMessageBox.ButtonRole.YesRole)
+            cancel_btn = msg_box.addButton("取消", QMessageBox.ButtonRole.NoRole)
+            msg_box.setDefaultButton(cancel_btn)
+            msg_box.setIcon(QMessageBox.Icon.Question)
+            msg_box.exec()
+            if msg_box.clickedButton() == cancel_btn:
                 logger.info(f"跳过导入: 「{display_name}」")
                 skipped += 1
                 continue
 
         # 复制文件
         try:
-            json_filename = Path(post_entry['file_path']).name
-            src_json = export_dir / "posts" / json_filename
-            if src_json.exists():
-                dst_json = POSTS_DIR / json_filename
-                shutil.copy2(src_json, dst_json)
-
-            md_filename = Path(post_entry['markdown']).name
-            src_md = export_dir / "markdowns" / md_filename
-            if src_md.exists():
-                dst_md = MARKDOWN_DIR / md_filename
-                shutil.copy2(src_md, dst_md)
-
+            
+            # 图片（两种模式一样）
             images_subdir = Path(post_entry['images_dir'])
             src_images = export_dir / images_subdir
             dst_images = IMAGES_DIR / images_subdir.name
             if src_images.exists():
                 shutil.copytree(src_images, dst_images, dirs_exist_ok=True)
 
-            json_path = POSTS_DIR / json_filename
-            if json_path.exists():
-                with open(json_path, 'r', encoding='utf-8') as f:
+            
+            json_filename = Path(post_entry['file_path']).name
+            src_json = export_dir / "posts" / json_filename
+            dst_json = POSTS_DIR / json_filename
+
+            if index_manager.post_exists(post_id, see_lz):
+                # --- 合并模式 ---
+                if src_json.exists() and dst_json.exists():
+                    with open(dst_json, 'r', encoding='utf-8') as f:
+                        local_data = json.load(f)
+                    with open(src_json, 'r', encoding='utf-8') as f:
+                        import_data = json.load(f)
+
+                    local_floors = {f['floor_number']: f for f in local_data['floors']}
+                    for f in import_data['floors']:
+                        if f['floor_number'] not in local_floors:
+                            local_floors[f['floor_number']] = f
+
+                    merged_floors = [local_floors[fn] for fn in sorted(local_floors)]
+                    local_data['floors'] = merged_floors
+                    local_data['total_floors'] = len(merged_floors)
+                    local_data['total_pages'] = max(
+                        local_data.get('total_pages', 0),
+                        import_data.get('total_pages', 0),
+                    )
+                    local_data['max_floor_number'] = max(
+                        (f['floor_number'] for f in merged_floors), default=0
+                    )
+
+                    with open(dst_json, 'w', encoding='utf-8') as f:
+                        json.dump(local_data, f, ensure_ascii=False, indent=2)
+                        
+                    # 从合并后的 JSON 重新生成 MD
+                    if dst_json.exists():
+                        convert_post_json_to_markdown(dst_json, apply_patch=True)
+            else:
+                # --- 新帖模式 ---
+                if src_json.exists():
+                    shutil.copy2(src_json, dst_json)
+
+                md_filename = Path(post_entry['markdown']).name
+                src_md = export_dir / "markdowns" / md_filename
+                dst_md = MARKDOWN_DIR / md_filename
+                if src_md.exists():
+                    shutil.copy2(src_md, dst_md)
+
+            # 更新索引
+            if dst_json.exists():
+                with open(dst_json, 'r', encoding='utf-8') as f:
                     post_data: PostData = json.load(f)
                 index_manager.add_to_index(post_data, preserve_last_crawled=True)
 

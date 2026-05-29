@@ -198,7 +198,7 @@ class IndexManager:
             - 删除 data/posts/ 下的 JSON 文件
             - 删除 data/images/{post_id}_{mode}/ 目录
             - 删除 data/markdowns/ 下的 .md 文件
-            - 删除 data/patches/ 下的 .patch.json 文件
+            - 删除 data/patches/{post_id}_{mode}/ 目录（含 patch.json 和补丁图片）
             - 从 index.json 中移除对应条目
         """
         try:

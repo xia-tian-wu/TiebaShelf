@@ -592,7 +592,7 @@ document.addEventListener('DOMContentLoaded', () => {{
 def render_markdown_to_temp_html(md_path: Path) -> Path:
     """将 Markdown 文件渲染为独立 HTML 临时文件，返回文件路径。"""
     md_text = md_path.read_text(encoding="utf-8")
-    md = MarkdownIt("commonmark", {"html": True})
+    md = MarkdownIt("commonmark", {"html": False})
     html_body = md.render(md_text)
     html = build_standalone_html(md_path, html_body)
 
@@ -629,7 +629,7 @@ class MarkdownViewer(QWidget):
         layout.addWidget(self.web_view)
         self.setLayout(layout)
 
-    def load_markdown(self, md_path: Path, display_name: str = ""):
+    def load_markdown(self, md_path: Path) -> bool:
         """加载并渲染 Markdown 文件"""
         try:
             self.current_md_path = md_path
@@ -647,7 +647,6 @@ class MarkdownViewer(QWidget):
             temp_file_path = render_markdown_to_temp_html(md_path)
             self._temp_html_path = temp_file_path
 
-            base_url = QUrl.fromLocalFile(str(md_path.parent.absolute()) + "/")
             file_url = QUrl.fromLocalFile(temp_file_path)
             self.web_view.load(file_url)
 

@@ -1,7 +1,7 @@
 import asyncio
 import datetime
 import json
-import os
+import re
 import random
 import time
 from pathlib import Path
@@ -115,6 +115,12 @@ class TiebaShelf:
             图片目录的绝对路径
         """
         return str(IMAGES_DIR / post_subdir_name(post_id, mode))
+    
+    def escape_markdown(self, text: str) -> str:
+        """转义 Markdown 元字符，防止被错误解析"""
+        # 需要转义的字符（按标准 Markdown）
+        escape_chars = r'\<>`*_{}[]()#+-.!~&'
+        return re.sub(r'([' + re.escape(escape_chars) + r'])', r'\\\1', text)
 
     def convert_post_to_floordata(self, post: Post, kw: str, tid: int) -> Tuple[FloorData, List[str]]:
         """
@@ -136,7 +142,7 @@ class TiebaShelf:
         for obj in post.contents.objs:
             type_name = type(obj).__name__
             if 'FragText' in type_name:
-                content_parts.append(obj.text)
+                content_parts.append(self.escape_markdown(obj.text))
             elif 'FragLink' in type_name:
                 content_parts.append(f'[{obj.title}]({obj.text})')
             elif 'FragImage' in type_name:
@@ -241,7 +247,8 @@ class TiebaShelf:
 
             # 4. 下载图片
             save_dir = IMAGES_DIR / post_subdir_name(tid, current_see_lz)
-
+            save_dir.mkdir(parents=True, exist_ok=True)
+            
             async with TiebaImageDownloader() as downloader:
                 success_count, _ = await downloader.download_and_backfill(
                     new_floors=new_floors,

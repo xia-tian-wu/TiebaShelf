@@ -95,7 +95,7 @@ class PageImport(QWidget):
 
         instructions = QLabel(
             "选择一个 TiebaShelf 导出文件夹（TiebaShelf_share_xxx），\n"
-            "预览可导入的帖子后勾选要导入的帖子。已存在的帖子会提示覆盖。"
+            "预览可导入的帖子后勾选要导入的帖子。已存在的帖子会提示合并。"
         )
         instructions.setStyleSheet("font-size: 13px; color: #555555; margin-bottom: 8px;")
         layout.addWidget(instructions)
@@ -246,7 +246,7 @@ class PageImport(QWidget):
         reply = QMessageBox.question(
             self, "确认导入",
             f"确定要导入选中的 {len(checked)} 个帖子吗？\n"
-            "已存在的帖子将会询问是否覆盖。",
+            "已存在的帖子将会询问是否合并。",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
         )
         if reply == QMessageBox.StandardButton.No:
