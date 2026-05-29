@@ -36,17 +36,20 @@
 
 ![日志输出截图](assets/screenshot/pic_edit.png)
 
-
 ### 搜索功能
+
 ![帖子搜索截图](assets/screenshot/search.png)
 
 ### 跳转功能
+
 ![图片跳转截图](assets/screenshot/jumping.png)
 
 ### 修改功能
+
 ![帖子修改截图](assets/screenshot/post_edit.png)
 
 ### 导入功能
+
 ![帖子修改截图](assets/screenshot/import_1.png)
 ![帖子修改截图](assets/screenshot/import_2.png)
 
@@ -160,7 +163,7 @@ pyinstaller TiebaShelf.spec
 * 在 **管理** 页面右键帖子或使用批量模式导出
 * 导出包包含 JSON / Markdown / 图片，结构完整
 * 在 **导入** 页面选择导出文件夹，自动校验完整性
-* 支持增量导入，已存在帖子可对比楼层数后选择覆盖或跳过
+* 支持增量导入，已存在帖子可对比楼层数后选择合并或跳过
 
 ---
 
