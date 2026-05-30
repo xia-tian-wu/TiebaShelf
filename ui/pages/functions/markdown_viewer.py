@@ -65,6 +65,7 @@ body {{
     border-radius: 4px; transition: all 0.2s; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }}
 .toc a:hover {{ color: #4a90e2; background: rgba(74, 144, 226, 0.1); }}
+.toc a.active {{ color: #4a90e2; font-weight: bold; background: rgba(74, 144, 226, 0.15); border-left: 3px solid #4a90e2; }}
 
 /* --- 主内容区域 --- */
 .container {{ flex: 1; max-width: 900px; min-width: 0; }}
@@ -103,6 +104,7 @@ body.dark-mode .toc-wrapper {{ background: rgba(43, 43, 58, 0.95); }}
 body.dark-mode a {{ color: #7eb8ff; }}
 body.dark-mode .toc a {{ color: #b8b8d1; }}
 body.dark-mode .toc a:hover {{ color: #7eb8ff; background: rgba(126, 184, 255, 0.15); }}
+body.dark-mode .toc a.active {{ color: #7eb8ff; font-weight: bold; background: rgba(126, 184, 255, 0.2); border-left: 3px solid #7eb8ff; }}
 body.dark-mode h1 {{ color: #e8e8f0; }}
 body.dark-mode p, body.dark-mode img, body.dark-mode blockquote, body.dark-mode pre {{ background: #2d2d44; color: #d0d0e0; }}
 body.dark-mode blockquote {{ border-left-color: #555577; }}
@@ -322,15 +324,53 @@ document.addEventListener('DOMContentLoaded', () => {{
             a.textContent = h.tagName === "H1" ? "简介" : "楼层 " + i;
             a.onclick = (e) => {{
                 e.preventDefault();
+                document.querySelectorAll('.toc a').forEach(link => link.classList.remove('active'));
+                a.classList.add('active');
+                isManualScroll = true;
                 h.scrollIntoView({{ behavior: 'smooth', block: 'start' }});
+                setTimeout(() => {{
+                    isManualScroll = false;
+                }}, 1000);
             }};
             fragment.appendChild(a);
         }});
         tocContainer.appendChild(fragment);
     }}
 
+    // 高亮当前楼层
+    let isManualScroll = false;
+    const tocLinks = document.querySelectorAll(".toc a");
+    const observer = new IntersectionObserver((entries) => {{
+    if (isManualScroll) return;
+
+    // 从所有正在交叉的条目中，选出距离视口顶部最近的那个楼层
+    let bestEntry = null;
+    let minTop = Infinity;
+
+    entries.forEach(entry => {{
+        if (entry.isIntersecting) {{
+            const rect = entry.boundingClientRect;
+            // 取元素顶部距离视口顶部的绝对距离
+            const top = Math.abs(rect.top);
+            if (top < minTop) {{
+                minTop = top;
+                bestEntry = entry;
+            }}
+        }}
+    }});
+
+    if (bestEntry) {{
+        const id = bestEntry.target.id;
+        tocLinks.forEach(a => {{
+            a.classList.toggle("active", a.getAttribute("href") === "#" + id);
+        }});
+    }}
+}}, {{ threshold: 0.3 }});
+
+    headings.forEach(h => observer.observe(h));
+
     /* ==========================================
-       2. 图片灯箱与【跳转楼层】功能
+        2. 图片灯箱与【跳转楼层】功能
        ========================================== */
     const imgs = document.querySelectorAll(".container img");
     const lightbox = document.getElementById("lightbox");
