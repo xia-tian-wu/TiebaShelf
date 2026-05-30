@@ -89,7 +89,7 @@ class PageImport(QWidget):
     def init_ui(self):
         layout = QVBoxLayout()
 
-        title = QLabel("【导入功能】")
+        title = QLabel("【导入功能区】")
         title.setStyleSheet("font-weight: bold; font-size: 14px; color: #333333;")
         layout.addWidget(title)
 

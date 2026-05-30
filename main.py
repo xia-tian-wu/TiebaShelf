@@ -82,19 +82,37 @@ class MainWindow(QMainWindow):
         self.log_area = QTextEdit()
         self.log_area.setReadOnly(True)
         self.log_area.setFixedWidth(160)
-        self.log_area.append(" ==== 操作日志 ====")
         self.log_area.append("UI 加载完成，等待任务执行...")
         self.ui_log_handler = add_ui_handler(self.log_area)
 
         log_container = QWidget()
         log_container.setFixedWidth(160)
         log_layout = QVBoxLayout(log_container)
+        log_layout.setSpacing(0)
+        log_layout.setContentsMargins(0, 0, 0, 0)
+
+        log_title = QLabel("操作日志")
+        log_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        log_title.setFixedHeight(28)
+        log_title.setStyleSheet("""
+            background: #cce0ff;
+            color: #1a4a7a;
+            font-size: 13px;
+            font-weight: bold;
+            border-top-left-radius: 6px;
+            border-top-right-radius: 6px;
+            border-bottom: 1px solid #B2BBCC;
+            padding: 0;
+        """)
+        log_layout.addWidget(log_title)
+
         log_layout.addWidget(self.log_area)
 
         clear_log_btn = QPushButton("清空日志")
         clear_log_btn.setObjectName("clearLogButton")
         clear_log_btn.setFixedHeight(30)
         clear_log_btn.setFixedWidth(155)
+        clear_log_btn.setStyleSheet("margin-top: 4px;")
         clear_log_btn.clicked.connect(self.clear_log)
         log_layout.addWidget(clear_log_btn, alignment=Qt.AlignmentFlag.AlignRight)
 
@@ -137,7 +155,6 @@ class MainWindow(QMainWindow):
 
     def clear_log(self):
         self.log_area.clear()
-        self.log_area.append(" ==== 操作日志 ====")
         self.log_area.append("日志已清空，等待新任务执行...")
         global_logger.info("日志面板已清空")
 
