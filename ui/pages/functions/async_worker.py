@@ -72,20 +72,21 @@ class AsyncWorker(QObject):
         # 创建爬虫实例
         self.spider = TiebaShelf()
 
+        def on_post_done(result: dict):
+            """每个帖子完成后通过信号发出进度（用于渐进更新进度条）"""
+            url = result['url']
+            if result['status'] == 'success':
+                self.task_completed.emit(url, 'crawl')
+            elif result['status'] == 'no_update':
+                self.task_completed.emit(url, 'update')
+
         try:
-            # 批量爬取所有帖子
+            # 批量并发爬取，但每完成一个就通过 on_post_done 回调触发进度信号
             results = await self.spider.crawl_multi_posts(
                 urls=all_urls,
-                recrawl_urls=self.recrawl_urls
+                recrawl_urls=self.recrawl_urls,
+                on_post_done=on_post_done
             )
-
-            # 发送任务完成信号（用于进度条更新）
-            for result in results:
-                url = result['url']
-                if result['status'] == 'success':
-                    self.task_completed.emit(url, 'crawl')
-                elif result['status'] == 'no_update':
-                    self.task_completed.emit(url, 'update')
 
             return results
 

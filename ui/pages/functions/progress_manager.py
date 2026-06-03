@@ -24,12 +24,13 @@ class TaskProgressManager:
         self.progress_bar.setRange(0, total_items)
         self.progress_bar.setValue(0)
         self.progress_bar.setFormat("%v/%m")
-        
+
         self._total_count = total_items
         self._current_count = 0
         self._last_task_type = "default"
         self.current_page = current_page
         self.show()
+        self._update_ui()
         if hasattr(current_page, 'on_task_start'):
             self.page_states[current_page] = current_page.on_task_start()
 
@@ -60,6 +61,7 @@ class TaskProgressManager:
         self._total_count = 0
         self._current_count = 0
         self._last_task_type = "default"
+        self.status_label.setText("就绪")
         self.hide()
         if self.current_page and self.current_page in self.page_states:
             if hasattr(self.current_page, 'on_task_finish'):

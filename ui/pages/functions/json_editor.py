@@ -141,7 +141,7 @@ class JsonEditorWindow(QMainWindow):
         spacer_left.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         toolbar.addWidget(spacer_left)
 
-        hint_label = QLabel("请勿手动修改 [图片：] / [补丁：] 标记，应通过图片列表管理，图片删除不可恢复")
+        hint_label = QLabel("请勿手动修改 [图片：] / [补丁：] 标记，应通过图片列表管理")
         hint_label.setStyleSheet("color: #999; font-size: 12px;")
         toolbar.addWidget(hint_label)
 

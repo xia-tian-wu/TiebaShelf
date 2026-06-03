@@ -597,7 +597,7 @@ class PageManage(QWidget):
         self.set_all_item_buttons_enabled(True)
         for widget in self.items.values():
             if widget.checkbox:
-                widget.checkbox.setEnabled(False)
+                widget.checkbox.setEnabled(True)
         
         # 启用批量操作按钮
         self.update_batch_button_state()

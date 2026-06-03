@@ -48,7 +48,7 @@ class TiebaShelf:
 
         # 并发控制
         self._client_lock = asyncio.Lock()
-        self._task_semaphore = asyncio.Semaphore(3)
+        self._task_semaphore = asyncio.Semaphore(4)
 
         # 延迟配置（请求间隔）
         self.delay_config = {
@@ -369,13 +369,20 @@ class TiebaShelf:
 
         return all_new_floors, all_new_images, base_info
 
-    async def crawl_multi_posts(self, urls: List[str], recrawl_urls: List[str] | None = None) -> List[Dict]:
+    async def crawl_multi_posts(
+        self,
+        urls: List[str],
+        recrawl_urls: List[str] | None = None,
+        on_post_done=None,
+    ) -> List[Dict]:
         """
         批量爬取多个帖子（统一入口）
 
         Args:
             urls: 帖子 URL 列表
             recrawl_urls: 需要强制重新爬取的 URL 列表
+            on_post_done: 每完成一个帖子时的回调（签名：Callable[[Dict], None]），
+                用于渐进更新进度条。即使某个帖子抛出异常，回调也会被调用。
 
         Returns:
             List[Dict]: 每个帖子的爬取结果 [{url, status, data/error}, ...]
@@ -383,29 +390,41 @@ class TiebaShelf:
         await self.initialize_client()
 
         recrawl_urls = recrawl_urls or []
-        
-        # 为每个 URL 创建任务，重爬的 URL 传入 force_recrawl=True
-        tasks = []
-        for url in urls:
-            force_recrawl = url in recrawl_urls
-            tasks.append(self.crawl_full_post(url, force_recrawl=force_recrawl))
-        
-        results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        formatted_results = []
-        for url, res in zip(urls, results):
+        async def _run_one(url: str) -> tuple:
+            """包装单个帖子的爬取：异常被捕获，结果以 (url, res_or_exc) 返回"""
+            try:
+                res = await self.crawl_full_post(url, force_recrawl=url in recrawl_urls)
+            except Exception as e:
+                res = e
+            return url, res
+
+        # 为每个 URL 启动并发任务
+        tasks = [asyncio.ensure_future(_run_one(url)) for url in urls]
+        url_index = {url: i for i, url in enumerate(urls)}
+        formatted_results: List[Optional[Dict]] = [None] * len(urls)
+
+        # 用 as_completed 实现渐进回调：哪个先完成先发回调
+        for task in asyncio.as_completed(tasks):
+            url, res = await task
+
             if isinstance(res, Exception):
-                formatted_results.append({
+                result_dict = {
                     'url': url,
                     'status': 'error',
                     'error': str(res)
-                })
+                }
             else:
-                formatted_results.append({
+                result_dict = {
                     'url': url,
                     'status': 'success' if res else 'no_update',
                     'data': res
-                })
+                }
+
+            formatted_results[url_index[url]] = result_dict
+
+            if on_post_done is not None:
+                on_post_done(result_dict)
 
         return formatted_results
 
