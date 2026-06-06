@@ -2,13 +2,11 @@ import asyncio
 import datetime
 import json
 import re
-import random
 import time
 from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 
-from aiotieba import Client
-from aiotieba.api.get_posts import Posts, Post
+from rs_aiotieba import Post, Posts, get_posts
 
 from config import POSTS_DIR, IMAGES_DIR
 from logger import logger
@@ -42,62 +40,14 @@ class TiebaShelf:
         """
         初始化爬虫对象
         """
-        self.tb_client: Optional[Client] = None
         self.index_manager = IndexManager()
         self.index_path = Path('data') / 'index.json'
 
-        # 并发控制
-        self._client_lock = asyncio.Lock()
-        self._task_semaphore = asyncio.Semaphore(4)
-
-        # 延迟配置（请求间隔）
-        self.delay_config = {
-            'min_delay': 0.5,
-            'max_delay': 2.0,
-            'base_delay': 1.0,
-            'jitter': True,
-        }
-
-    # =============== 客户端生命周期管理 ===============
-
-    async def initialize_client(self) -> None:
-        """初始化 aiotieba 客户端（单例模式，带锁保护）"""
-        if self.tb_client is not None:
-            return
-
-        async with self._client_lock:
-            if self.tb_client is not None:
-                return
-
-            self.tb_client = Client()
-            await self.tb_client.__aenter__()
-
-    async def cleanup(self) -> None:
-        """清理客户端资源"""
-        if self.tb_client is not None:
-            try:
-                await self.tb_client.__aexit__(None, None, None)
-            except Exception as e:
-                logger.error(f"清理 aiotieba 客户端失败：{e}")
-            finally:
-                self.tb_client = None
+        # 并发控制：获取内容用独立 semaphore，下载图片另用一个
+        self._fetch_semaphore = asyncio.Semaphore(4)
+        self._download_semaphore = asyncio.Semaphore(3)
 
     # =============== 工具方法 ===============
-
-    def _get_delay(self) -> float:
-        """计算请求延迟时间（带抖动）"""
-        base = self.delay_config['base_delay']
-        if self.delay_config['jitter']:
-            jitter = random.uniform(-0.3, 0.3)
-            delay = base * (1 + jitter)
-        else:
-            delay = base
-        return max(self.delay_config['min_delay'], min(delay, self.delay_config['max_delay']))
-
-    async def wait_before_next_request(self) -> None:
-        """异步等待延迟时间"""
-        delay = self._get_delay()
-        await asyncio.sleep(delay)
 
     def build_url_prefix(self, bar_name: str, tid: int) -> str:
         """构建贴吧图片 URL 前缀"""
@@ -121,6 +71,10 @@ class TiebaShelf:
         # 需要转义的字符（按标准 Markdown）
         escape_chars = r'\<>`*_{}[]()#+-.!~&'
         return re.sub(r'([' + re.escape(escape_chars) + r'])', r'\\\1', text)
+
+    async def _get_posts(self, tid: int, pn: int, see_lz: bool):
+        """异步包装 rs_aiotieba.get_posts：放到线程池执行，不阻塞事件循环"""
+        return await asyncio.to_thread(get_posts, tid, pn, see_lz)
 
     def convert_post_to_floordata(self, post: Post, kw: str, tid: int) -> Tuple[FloorData, List[str]]:
         """
@@ -169,7 +123,7 @@ class TiebaShelf:
 
     def is_valid_post_page(self, posts: Posts) -> bool:
         """检查 Posts 对象是否为有效的帖子页面"""
-        return bool(posts.objs)
+        return posts.status == "ok"
 
     # =============== 核心爬取逻辑 ===============
 
@@ -190,65 +144,65 @@ class TiebaShelf:
             FileIndexError: 读取历史数据失败
             NetworkError: 网络请求失败
         """
-        async with self._task_semaphore:
-            await self.initialize_client()
+        # 1. 解析 URL
+        current_see_lz = see_lz or ('see_lz=1' in url)
+        tid = extract_posts_id(url)
+        if not tid:
+            raise ex.InvalidURLError("无法提取帖子 ID", url=url)
 
-            # 1. 解析 URL
-            current_see_lz = see_lz or ('see_lz=1' in url)
-            tid = extract_posts_id(url)
-            if not tid:
-                raise ex.InvalidURLError("无法提取帖子 ID", url=url)
+        # 2. 检查索引（强制重爬时跳过）
+        index = self.index_manager.load_index()
+        index_key = self.index_manager.get_index_key(tid, current_see_lz)
 
-            # 2. 检查索引（强制重爬时跳过）
-            index = self.index_manager.load_index()
-            index_key = self.index_manager.get_index_key(tid, current_see_lz)
+        history_post_data: Optional[PostData] = None
+        start_pn = 1
+        history_max_floor = 0
 
-            history_post_data: Optional[PostData] = None
-            start_pn = 1
-            history_max_floor = 0
+        if not force_recrawl and index_key in index:
+            history_post_index = index[index_key]
+            history_file_path = self.index_path.parent / history_post_index['file_path']
 
-            if not force_recrawl and index_key in index:
-                history_post_index = index[index_key]
-                history_file_path = self.index_path.parent / history_post_index['file_path']
+            try:
+                with open(history_file_path, 'r', encoding='utf-8') as f:
+                    history_post_data = json.load(f)
+            except Exception as e:
+                logger.error(f"读取历史帖子数据失败：{e}")
+                raise ex.FileIndexError("读取历史帖子数据失败", url=url)
 
-                try:
-                    with open(history_file_path, 'r', encoding='utf-8') as f:
-                        history_post_data = json.load(f)
-                except Exception as e:
-                    logger.error(f"读取历史帖子数据失败：{e}")
-                    raise ex.FileIndexError("读取历史帖子数据失败", url=url)
+            if history_post_data and history_post_data.get('floors'):
+                history_max_floor = history_post_data.get('max_floor_number', 0)
+                start_pn = max(1, history_post_data.get('total_pages', 1))
 
-                if history_post_data and history_post_data.get('floors'):
-                    history_max_floor = history_post_data.get('max_floor_number', 0)
-                    start_pn = max(1, history_post_data.get('total_pages', 1))
+            # ========== 检测图片目录变更（支持软件迁移） ==========
+            recorded_images_dir = history_post_data.get('images_dir', '')
+            present_images_dir = self.get_image_path(current_see_lz, tid)
+            if recorded_images_dir and recorded_images_dir != present_images_dir:
+                logger.info(f"检测到图片目录变更，更新历史记录中的图片目录路径：{present_images_dir}")
+                history_post_data['images_dir'] = present_images_dir
 
-                # ========== 检测图片目录变更（支持软件迁移） ==========
-                recorded_images_dir = history_post_data.get('images_dir', '')
-                present_images_dir = self.get_image_path(current_see_lz, tid)
-                if recorded_images_dir and recorded_images_dir != present_images_dir:
-                    logger.info(f"检测到图片目录变更，更新历史记录中的图片目录路径：{present_images_dir}")
-                    history_post_data['images_dir'] = present_images_dir
-
+        else:
+            if force_recrawl:
+                logger.info(f"强制重新爬取模式，忽略历史数据：{tid}")
             else:
-                if force_recrawl:
-                    logger.info(f"强制重新爬取模式，忽略历史数据：{tid}")
-                else:
-                    logger.info(f"未找到历史数据，开始全文爬取：{tid}")
+                logger.info(f"未找到历史数据，开始全文爬取：{tid}")
 
-            post_sign = history_post_data.get('title') if history_post_data else url
-            # 3. 执行爬取
+        post_sign = history_post_data.get('title') if history_post_data else url
+
+        # 3. 执行爬取（受 _fetch_semaphore 限制，不阻塞其他帖子的下载）
+        async with self._fetch_semaphore:
             new_floors, new_images_list, base_info = await self._sync_single_tid(
                 int(tid), start_pn, current_see_lz, history_max_floor, post_sign
             )
 
-            if not new_floors:
-                logger.info(f"帖子「{post_sign}」没有新内容")
-                return None
+        if not new_floors:
+            logger.info(f"帖子「{post_sign}」没有新内容")
+            return None
 
-            # 4. 下载图片
-            save_dir = IMAGES_DIR / post_subdir_name(tid, current_see_lz)
-            save_dir.mkdir(parents=True, exist_ok=True)
-            
+        # 4. 下载图片（受 _download_semaphore 限制，不阻塞其他帖子的获取）
+        save_dir = IMAGES_DIR / post_subdir_name(tid, current_see_lz)
+        save_dir.mkdir(parents=True, exist_ok=True)
+        
+        async with self._download_semaphore:
             async with TiebaImageDownloader() as downloader:
                 success_count, _ = await downloader.download_and_backfill(
                     new_floors=new_floors,
@@ -257,45 +211,45 @@ class TiebaShelf:
                     post_id=tid
                 )
 
-            # 5. 合并数据并保存
-            if history_post_data:
-                history_post_data['floors'].extend(new_floors)
-                unique_floors = {f['floor_number']: f for f in history_post_data['floors']}.values()
-                sorted_floors = sorted(unique_floors, key=lambda x: x['floor_number'])
+        # 5. 合并数据并保存
+        if history_post_data:
+            history_post_data['floors'].extend(new_floors)
+            unique_floors = {f['floor_number']: f for f in history_post_data['floors']}.values()
+            sorted_floors = sorted(unique_floors, key=lambda x: x['floor_number'])
 
-                updated_post_data: PostData = {
-                    'post_id': history_post_data['post_id'],
-                    'title': history_post_data['title'],
-                    'see_lz': history_post_data['see_lz'],
-                    'url': history_post_data['url'],
-                    'crawl_time': time.strftime('%Y-%m-%d %H:%M:%S'),
-                    'total_pages': base_info['max_page_num'],
-                    'total_floors': len(sorted_floors),
-                    'floors': sorted_floors,
-                    'images_downloaded': history_post_data.get('images_downloaded', 0) + success_count,
-                    'images_dir': history_post_data.get('images_dir', ''),
-                    'max_floor_number': max(f['floor_number'] for f in sorted_floors),
-                    'bar': history_post_data.get('bar', '')
-                }
-            else:
-                updated_post_data: PostData = {
-                    'post_id': tid,
-                    'title': base_info['title'],
-                    'see_lz': current_see_lz,
-                    'url': url,
-                    'crawl_time': time.strftime('%Y-%m-%d %H:%M:%S'),
-                    'total_pages': base_info['max_page_num'],
-                    'total_floors': len(new_floors),
-                    'floors': new_floors,
-                    'images_downloaded': success_count,
-                    'images_dir': str(save_dir),
-                    'max_floor_number': max(f['floor_number'] for f in new_floors),
-                    'bar': base_info['bar_name']
-                }
+            updated_post_data: PostData = {
+                'post_id': history_post_data['post_id'],
+                'title': history_post_data['title'],
+                'see_lz': history_post_data['see_lz'],
+                'url': history_post_data['url'],
+                'crawl_time': time.strftime('%Y-%m-%d %H:%M:%S'),
+                'total_pages': base_info['max_page_num'],
+                'total_floors': len(sorted_floors),
+                'floors': sorted_floors,
+                'images_downloaded': history_post_data.get('images_downloaded', 0) + success_count,
+                'images_dir': history_post_data.get('images_dir', ''),
+                'max_floor_number': max(f['floor_number'] for f in sorted_floors),
+                'bar': history_post_data.get('bar', '')
+            }
+        else:
+            updated_post_data: PostData = {
+                'post_id': tid,
+                'title': base_info['title'],
+                'see_lz': current_see_lz,
+                'url': url,
+                'crawl_time': time.strftime('%Y-%m-%d %H:%M:%S'),
+                'total_pages': base_info['max_page_num'],
+                'total_floors': len(new_floors),
+                'floors': new_floors,
+                'images_downloaded': success_count,
+                'images_dir': str(save_dir),
+                'max_floor_number': max(f['floor_number'] for f in new_floors),
+                'bar': base_info['bar_name']
+            }
 
-            # 6. 保存到索引
-            self._save_post_data(updated_post_data)
-            return updated_post_data
+        # 6. 保存到索引
+        self._save_post_data(updated_post_data)
+        return updated_post_data
 
     async def _sync_single_tid(
         self,
@@ -322,7 +276,7 @@ class TiebaShelf:
         """
         # 第一步：请求起始页
         try:
-            first_resp = await self.tb_client.get_posts(tid, pn=start_pn, only_thread_author=see_lz)
+            first_resp = await self._get_posts(tid, start_pn, see_lz)
         except Exception as e:
             logger.error(f"网络请求失败：{e}")
             raise ex.NetworkError(f"获取帖子失败：{e}", url=f"https://tieba.baidu.com/p/{tid}")
@@ -333,22 +287,21 @@ class TiebaShelf:
 
         total_page = first_resp.page.total_page
         title = first_resp.thread.title
-        bar_name = first_resp.forum.fname
+        bar_name = first_resp.bar_name
 
         # 处理页数缩减情况
         if start_pn > total_page:
             logger.info(f"检测到页数缩减（{start_pn} -> {total_page}），重置为从第 1 页重新同步")
             return await self._sync_single_tid(tid, 1, see_lz, 0, post_sign)
 
-        # 第二步：并发抓取剩余页
+        # 第二步：异步并发抓取剩余页
         all_pages_resp = [first_resp]
         if total_page > start_pn:
-            tasks = []
-            for p in range(start_pn + 1, total_page + 1):
-                tasks.append(self.tb_client.get_posts(tid, pn=p, only_thread_author=see_lz))
-
+            tasks = [self._get_posts(tid, p, see_lz) for p in range(start_pn + 1, total_page + 1)]
             others = await asyncio.gather(*tasks, return_exceptions=True)
-            all_pages_resp.extend([r for r in others if not isinstance(r, Exception)])
+            for r in others:
+                if not isinstance(r, Exception):
+                    all_pages_resp.append(r)
 
         # 第三步：解析楼层并过滤
         all_new_floors = []
@@ -387,7 +340,6 @@ class TiebaShelf:
         Returns:
             List[Dict]: 每个帖子的爬取结果 [{url, status, data/error}, ...]
         """
-        await self.initialize_client()
 
         recrawl_urls = recrawl_urls or []
 
