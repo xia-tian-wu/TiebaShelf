@@ -102,7 +102,7 @@ def get_display_name(title: str, see_lz: bool, for_filename: bool = False) -> st
         return get_safe_filename_part(display_name, max_len=50)
     return display_name
 
-def post_subdir_name(post_id: str, see_lz: bool) -> str:
+def post_subdir_name(post_id: str | int, see_lz: bool) -> str:
     """生成帖子资源子目录名，如 '10287031162_see_lz'。"""
     mode = "see_lz" if see_lz else "full"
     return f"{post_id}_{mode}"

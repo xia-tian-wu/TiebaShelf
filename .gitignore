@@ -4,5 +4,6 @@ __pycache__
 /data
 /build
 /dist
+/tests
 
 turn_to.py
