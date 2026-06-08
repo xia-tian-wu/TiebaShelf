@@ -1,7 +1,7 @@
 from typing import TypedDict, List, Optional
 
 # 帖子索引元数据（用于去重/记录爬取状态）
-class PostIndex(TypedDict):
+class PostIndex(TypedDict, total=False):
     post_id: str
     title: str
     see_lz: bool
@@ -12,6 +12,8 @@ class PostIndex(TypedDict):
     file_path: str
     display_name: str
     max_floor_number: int
+    pinned: bool
+    tags: List[str]
 
 # 单楼层结构
 class FloorData(TypedDict):

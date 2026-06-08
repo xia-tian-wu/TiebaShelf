@@ -6,9 +6,9 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
     QLabel, QPushButton, QCheckBox, QFrame, QMessageBox, QSizePolicy,
     QAbstractItemView, QMenu, QApplication, QComboBox, QLineEdit,
-    QFileDialog
+    QFileDialog, QDialog, QInputDialog, QDialogButtonBox
 )
-from PySide6.QtCore import Qt, Signal, QThread, QSize, Slot
+from PySide6.QtCore import Qt, Signal, QThread, Slot
 from PySide6.QtGui import QContextMenuEvent, QCursor, QAction, QGuiApplication, QMouseEvent
 from spider.index_manage import IndexManager
 from spider.utils import json_to_md_path
@@ -19,55 +19,74 @@ from logger import logger
 import asyncio
 
 from ui.pages.functions.toggle_switch import ToggleSwitch
+from ui.pages.functions.tag_chip_button import TagChipButton
 
 from config import MARKDOWN_DIR
 
 class ManageItemWidget(QWidget):
-    """单个帖子的管理项（含按钮）"""
+    """单个帖子的管理项（含按钮、标签、置顶）"""
     update_requested = Signal(str)      # post_key
     recrawl_requested = Signal(str)
     delete_requested = Signal(str)
     selection_changed = Signal(str, bool)  # 用于批量模式
     open_in_viewer_requested = Signal(str, str)  # file_path, display_name
+    manage_tags_requested = Signal(str)
+    toggle_pin_requested = Signal(str)
 
-    def __init__(self, post_key: str, display_name: str, url: str, file_path: str, parent=None):
+    def __init__(self, post_key: str, display_name: str, url: str, file_path: str,
+                 tags: list[str] | None = None, pinned: bool = False, parent=None):
         super().__init__(parent)
         self.post_key = post_key
         self.display_name = display_name
         self.url = url
         self.file_path = file_path
+        self.tags = tags or []
+        self.pinned = pinned
         self.is_batch_mode = False
         self.checkbox = None
         self.update_btn = None
         self.recrawl_btn = None
         self.delete_btn = None
+        self.tag_chips = []
         self.init_ui()
+        self.set_batch_mode(False)
+        self.refresh_pin_icon()
+        self.refresh_tags_row()
 
     def init_ui(self):
-        self._hlayout = QHBoxLayout()
-        self._hlayout.setContentsMargins(5, 5, 5, 5)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(5, 5, 5, 5)
+        layout.setSpacing(0)
 
-        # 左侧：显示名称
+        # Row 1: name + tags + buttons
+        row1 = QHBoxLayout()
+        row1.setSpacing(4)
+
         self.name_label = QLabel(self.display_name)
         self.name_label.setStyleSheet("font-size: 13px;")
-        self.name_label.setMinimumWidth(200)  # 设置最小宽度
-        self.name_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)  # 允许扩展
-        self._hlayout.addWidget(self.name_label)
-        
-        self._hlayout.addSpacing(8)
+        self.name_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        row1.addWidget(self.name_label)
 
-        self._hlayout.addStretch()
+        # tag chips container
+        self.tag_container = QWidget()
+        self.tag_container.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        tag_layout = QHBoxLayout(self.tag_container)
+        tag_layout.setContentsMargins(0, 0, 0, 0)
+        tag_layout.setSpacing(3)
+        self.tag_layout = tag_layout
+        row1.addWidget(self.tag_container)
 
-        # 右侧：按钮容器（非批量模式）
+        row1.addStretch()
+
         self.button_container = QWidget()
         button_layout = QHBoxLayout(self.button_container)
         button_layout.setSpacing(4)
-        button_layout.setContentsMargins(0, 0, 0, 0) # 上下左右间距
+        button_layout.setContentsMargins(0, 0, 0, 0)
 
         self.update_btn = QPushButton("增量")
         self.recrawl_btn = QPushButton("重爬")
         self.delete_btn = QPushButton("删除")
-        
+
         for btn in [self.update_btn, self.recrawl_btn, self.delete_btn]:
             btn.setFixedSize(50, 28)
 
@@ -80,11 +99,35 @@ class ManageItemWidget(QWidget):
         button_layout.addWidget(self.recrawl_btn)
         button_layout.addWidget(self.delete_btn)
 
-        self._hlayout.addWidget(self.button_container)
+        row1.addWidget(self.button_container)
+        layout.addLayout(row1)
 
-        self.setLayout(self._hlayout)
-        self.setFixedHeight(40)
-        self.set_batch_mode(False)
+    def refresh_pin_icon(self):
+        """更新置顶图标（用 emoji 前缀替代独立控件，避免布局偏移）"""
+        self.name_label.setText(
+            f"📌 {self.display_name}" if self.pinned else self.display_name
+        )
+
+    def refresh_tags_row(self):
+        """根据 self.tags 重建 tag chips（50×28 薄荷绿胶囊）"""
+        for chip in self.tag_chips:
+            self.tag_layout.removeWidget(chip)
+            chip.deleteLater()
+        self.tag_chips.clear()
+
+        if not self.tags:
+            return
+
+        for tag in self.tags:
+            chip = QLabel(tag[:4])
+            chip.setFixedSize(50, 28)
+            chip.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            chip.setStyleSheet(
+                "background: #73d9d7; color: #fff; font-size: 11px; font-weight: bold; "
+                "border: 1px solid white; border-radius: 14px;"
+            )
+            self.tag_layout.addWidget(chip)
+            self.tag_chips.append(chip)
 
     def mousePressEvent(self, event: QMouseEvent):
         """处理鼠标点击事件"""
@@ -99,39 +142,54 @@ class ManageItemWidget(QWidget):
         menu = QMenu(self)
         menu.setObjectName('postMenu')
         
-        # 添加“打开本地文件”
+        # 置顶/取消置顶
+        if self.pinned:
+            pin_action = QAction("取消置顶", self)
+        else:
+            pin_action = QAction("置顶帖子", self)
+        pin_action.triggered.connect(lambda: self.toggle_pin_requested.emit(self.post_key))
+        menu.addAction(pin_action)
+        
+        # 管理标签
+        tag_action = QAction("管理标签", self)
+        tag_action.triggered.connect(self.open_tag_editor)
+        menu.addAction(tag_action)
+        
+        menu.addSeparator()
+
+        # “打开本地文件”
         open_file_action = QAction("在默认阅读器中打开Markdown", self)
         open_file_action.triggered.connect(self.open_markdown)
         menu.addAction(open_file_action)
 
-        # 添加"编辑帖子内容"
+        # 编辑帖子内容
         edit_action = QAction("编辑帖子内容", self)
         edit_action.triggered.connect(self.open_json_editor)
         menu.addAction(edit_action)
 
-        # 添加"打开所在文件夹"
+        # 打开所在文件夹
         open_folder_action = QAction("浏览本地MD资源文件夹", self)
         open_folder_action.triggered.connect(self.open_md_folder)
         menu.addAction(open_folder_action)
 
-        # 添加"导出帖子"
+        # 导出帖子
         export_action = QAction("导出帖子", self)
         export_action.triggered.connect(self.export_post)
         menu.addAction(export_action)
 
         menu.addSeparator()
         
-        # 添加“复制链接”
+        # 复制链接
         copy_action = QAction("复制帖子链接", self)
         copy_action.triggered.connect(self.copy_url)
         menu.addAction(copy_action)
 
-        # 添加“使用浏览器打开”
+        # 使用浏览器打开
         open_browser_action = QAction("使用浏览器打开原始链接", self)
         open_browser_action.triggered.connect(self.open_url_in_browser)
         menu.addAction(open_browser_action)
 
-        # 添加“使用浏览器打开本地帖子内容”
+        # 使用浏览器打开本地帖子内容
         open_html_action = QAction("使用浏览器阅读本地帖子", self)
         open_html_action.triggered.connect(self.open_html_in_browser)
         menu.addAction(open_html_action)
@@ -238,6 +296,7 @@ class ManageItemWidget(QWidget):
 
     def set_batch_mode(self, enabled: bool):
         self.is_batch_mode = enabled
+        row1 = self.layout().itemAt(0).layout()  # first QHBoxLayout
         if enabled:
             if not self.checkbox:
                 self.checkbox = QCheckBox()
@@ -245,8 +304,8 @@ class ManageItemWidget(QWidget):
                 self.checkbox.toggled.connect(
                     lambda checked: self.selection_changed.emit(self.post_key, checked)
                 )
-                self._hlayout.insertWidget(0, self.checkbox)
-                self._hlayout.insertSpacing(1, 8)
+                row1.insertWidget(0, self.checkbox)
+                row1.insertSpacing(1, 8)
             self.checkbox.show()
             self.button_container.hide()
         else:
@@ -263,6 +322,215 @@ class ManageItemWidget(QWidget):
         if self.delete_btn:
             self.delete_btn.setEnabled(enabled)
 
+    def set_tags_data(self, tags: list[str]):
+        self.tags = tags
+        self.refresh_tags_row()
+
+    def handle_pin(self, pinned: bool):
+        self.pinned = pinned
+        self.refresh_pin_icon()
+
+    def open_tag_editor(self):
+        self.manage_tags_requested.emit(self.post_key)
+
+class TagEditDialog(QDialog):
+    """标签编辑弹窗"""
+    def __init__(self, post_key: str, display_name: str, current_tags: list[str],
+                 prefer_labels: list[str] | None = None, parent=None):
+        super().__init__(parent)
+        self.post_key = post_key
+        self.display_name = display_name
+        self.current_tags = list(current_tags)
+        self.prefer_labels = list(prefer_labels) if prefer_labels else []
+        self.tag_chips = []
+
+        self.setWindowTitle(f"管理标签 ➤ {display_name}")
+        self.setMinimumWidth(420)
+        self.setModal(True)
+
+        layout = QVBoxLayout(self)
+        layout.setSpacing(6)
+
+        # ── 帖子标签 ──
+        layout.addWidget(QLabel("帖子标签（最多4个字符，上限3个）："))
+        self.tag_container = QWidget()
+        self.tag_layout = QHBoxLayout(self.tag_container)
+        self.tag_layout.setContentsMargins(0, 0, 0, 0)
+        self.tag_layout.setSpacing(4)
+        self._rebuild_tag_chips()
+        layout.addWidget(self.tag_container)
+
+        # 添加帖子标签
+        add_row = QHBoxLayout()
+        self.tag_input = QLineEdit()
+        self.tag_input.setPlaceholderText("输入新标签...")
+        self.tag_input.returnPressed.connect(self._add_tag)
+        self.add_btn = QPushButton("添加")
+        self.add_btn.setFixedWidth(50)
+        self.add_btn.clicked.connect(self._add_tag)
+        add_row.addWidget(self.tag_input)
+        add_row.addWidget(self.add_btn)
+        layout.addLayout(add_row)
+
+        # ── 偏好标签（独立于帖子标签）──
+        layout.addSpacing(10)
+        layout.addWidget(QLabel("偏好标签（点击左侧复制到帖子标签，上限6个）："))
+        self.prefer_container = QWidget()
+        self.prefer_layout = QHBoxLayout(self.prefer_container)
+        self.prefer_layout.setContentsMargins(0, 0, 0, 0)
+        self.prefer_layout.setSpacing(4)
+        self._rebuild_prefer_chips()
+        layout.addWidget(self.prefer_container)
+
+        # 添加偏好标签
+        prefer_add_row = QHBoxLayout()
+        self.prefer_input = QLineEdit()
+        self.prefer_input.setPlaceholderText("输入偏好标签...")
+        self.prefer_input.returnPressed.connect(self._add_prefer)
+        self.prefer_add_btn = QPushButton("添加")
+        self.prefer_add_btn.setFixedWidth(50)
+        self.prefer_add_btn.clicked.connect(self._add_prefer)
+        prefer_add_row.addWidget(self.prefer_input)
+        prefer_add_row.addWidget(self.prefer_add_btn)
+        layout.addLayout(prefer_add_row)
+
+        # ── 按钮 ──
+        layout.addSpacing(12)
+        btn_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        btn_box.accepted.connect(self.accept)
+        btn_box.rejected.connect(self.reject)
+        layout.addWidget(btn_box)
+
+    # ── 帖子标签 chips ──
+
+    def _rebuild_tag_chips(self):
+        while self.tag_layout.count():
+            item = self.tag_layout.takeAt(0)
+            w = item.widget()
+            if w:
+                w.deleteLater()
+            del item
+        self.tag_chips.clear()
+        self._update_input_placeholder()
+
+        if not self.current_tags:
+            self.tag_layout.addWidget(QLabel("（无标签）"))
+            return
+
+        for tag in self.current_tags:
+            chip = TagChipButton(tag)
+            chip.clicked.connect(lambda t=tag: self._copy_tag(t))
+            chip.delete_clicked.connect(lambda t=tag: self._remove_tag(t))
+            self.tag_layout.addWidget(chip)
+            self.tag_chips.append(chip)
+
+        self.tag_layout.addStretch()
+
+    def _copy_tag(self, tag: str):
+        if tag not in self.current_tags:
+            if len(self.current_tags) >= 3:
+                QMessageBox.warning(self, "提示", "帖子标签最多 3 个")
+                return
+            self.current_tags.append(tag)
+            self._rebuild_tag_chips()
+
+    def _add_tag(self):
+        new_tag = self.tag_input.text().strip()
+        if not new_tag:
+            return
+        if len(new_tag) > 4:
+            QMessageBox.warning(self, "提示", "标签最多 4 个字符")
+            self.tag_input.clear()
+            return
+        if len(self.current_tags) >= 3:
+            QMessageBox.warning(self, "提示", "帖子标签最多 3 个")
+            self.tag_input.clear()
+            return
+        if new_tag not in self.current_tags:
+            self.current_tags.append(new_tag)
+            self._rebuild_tag_chips()
+        self.tag_input.clear()
+
+    def _remove_tag(self, tag: str):
+        if tag in self.current_tags:
+            self.current_tags.remove(tag)
+            self._rebuild_tag_chips()
+
+    # ── 偏好标签 chips ──
+
+    def _rebuild_prefer_chips(self):
+        while self.prefer_layout.count():
+            item = self.prefer_layout.takeAt(0)
+            w = item.widget()
+            if w:
+                w.deleteLater()
+            del item
+        self._update_input_placeholder()
+
+        if not self.prefer_labels:
+            self.prefer_layout.addWidget(QLabel("（无）"))
+            return
+
+        for tag in self.prefer_labels:
+            chip = TagChipButton(tag)
+            chip.clicked.connect(lambda t=tag: self._copy_prefer_to_post(t))
+            chip.delete_clicked.connect(lambda t=tag: self._remove_prefer(t))
+            self.prefer_layout.addWidget(chip)
+
+        self.prefer_layout.addStretch()
+
+    def _copy_prefer_to_post(self, tag: str):
+        """偏好标签 → 复制到帖子标签（去重，最多3个，≤4字符）"""
+        if len(self.current_tags) >= 3:
+            QMessageBox.warning(self, "提示", "帖子标签最多 3 个")
+            return
+        if tag not in self.current_tags:
+            self.current_tags.append(tag)
+            self._rebuild_tag_chips()
+
+    def _add_prefer(self):
+        new_tag = self.prefer_input.text().strip()
+        if not new_tag:
+            return
+        if len(new_tag) > 4:
+            QMessageBox.warning(self, "提示", "标签最多 4 个字符")
+            self.prefer_input.clear()
+            return
+        if len(self.prefer_labels) >= 6:
+            QMessageBox.warning(self, "提示", "偏好标签最多 6 个")
+            self.prefer_input.clear()
+            return
+        if new_tag not in self.prefer_labels:
+            self.prefer_labels.append(new_tag)
+            self._rebuild_prefer_chips()
+        self.prefer_input.clear()
+
+    def _remove_prefer(self, tag: str):
+        if tag in self.prefer_labels:
+            self.prefer_labels.remove(tag)
+            self._rebuild_prefer_chips()
+
+    def _update_input_placeholder(self):
+        """满上限时输入框变提示语（init 中输入框可能尚未创建）"""
+        if not hasattr(self, 'tag_input') or not hasattr(self, 'prefer_input'):
+            return
+        if len(self.current_tags) >= 3:
+            self.tag_input.setPlaceholderText("帖子标签已达上限（3个）")
+            self.add_btn.setEnabled(False)
+        else:
+            self.tag_input.setPlaceholderText("输入新标签...")
+            self.add_btn.setEnabled(True)
+
+        if len(self.prefer_labels) >= 6:
+            self.prefer_input.setPlaceholderText("偏好标签已达上限（6个）")
+            self.prefer_add_btn.setEnabled(False)
+        else:
+            self.prefer_input.setPlaceholderText("输入偏好标签...")
+            self.prefer_add_btn.setEnabled(True)
+
+    def get_results(self) -> tuple[list[str], list[str]]:
+        return list(self.current_tags), list(self.prefer_labels)
+
 
 class PageManage(QWidget):
     def __init__(self, spider_instance=None, main_window=None):
@@ -272,7 +540,7 @@ class PageManage(QWidget):
         self.worker_thread = None      # 统一管理工作线程，避免多线程混乱
         self.worker = None             # 统一管理工作实例
         self.items = {}  # post_key -> ManageItemWidget
-        self.selected_keys = set()  # 修复：初始化为set
+        self.selected_keys = set()  # 初始化为set
         self.batch_mode = False
         self.index_manager = IndexManager()
         self.progress_mgr = main_window.global_progress_mgr if main_window else None
@@ -317,7 +585,7 @@ class PageManage(QWidget):
         # 下拉框
         self.type_filter_combo = QComboBox()
         self.type_filter_combo.setToolTip("点击选择帖子类型过滤")
-        self.type_filter_combo.addItems(["  全部", "  只看楼主", "  完整版"])
+        self.type_filter_combo.addItems(["  全部", "  完整版", "  只看楼主", "  标签搜索"])
         self.type_filter_combo.setFixedWidth(80)
         self.type_filter_combo.setFixedHeight(29)
         self.type_filter_combo.setObjectName("typeFilterCombo")
@@ -403,43 +671,51 @@ class PageManage(QWidget):
             # 记录当前批量模式状态，刷新后复用
             current_batch_mode = self.batch_mode
             self.selected_keys.clear()
-            
-            # 加载索引数据
+
             index_data = self.index_manager.load_index()
             if not index_data:
                 self.status_label.setText("暂无帖子数据")
             else:
-                # 遍历索引数据创建UI项
+                # 分离置顶与非置顶，置顶排前面
+                pinned_list, normal_list = [], []
                 for post_key, post_info in index_data.items():
+                    if post_info.get('pinned', False):
+                        pinned_list.append((post_key, post_info))
+                    else:
+                        normal_list.append((post_key, post_info))
+                sorted_posts = pinned_list + normal_list
+
+                for post_key, post_info in sorted_posts:
                     display_name = post_info.get('display_name', post_info.get('title', '未知帖子'))
                     url = post_info.get('url', '')
                     file_path = post_info.get('file_path', '')
-                    
-                    item_widget = ManageItemWidget(post_key, display_name, url, file_path)
+                    tags = post_info.get('tags', [])
+                    pinned = post_info.get('pinned', False)
+
+                    item_widget = ManageItemWidget(post_key, display_name, url, file_path, tags, pinned)
 
                     item_widget.update_requested.connect(self.handle_update)
                     item_widget.recrawl_requested.connect(self.handle_recrawl)
                     item_widget.delete_requested.connect(self.handle_delete)
                     item_widget.selection_changed.connect(self.on_item_selected)
                     item_widget.open_in_viewer_requested.connect(self.open_markdown_in_viewer)
+                    item_widget.manage_tags_requested.connect(self.open_tag_editor)
+                    item_widget.toggle_pin_requested.connect(self.handle_toggle_pin)
                     item_widget.set_batch_mode(current_batch_mode)
 
                     item = QListWidgetItem()
-                    # 拆分setSizeHint调用，避免一次性传参触发异常
-                    w = item_widget.minimumWidth()
-                    h = item_widget.minimumHeight()
-                    item.setSizeHint(QSize(w, h))
-                    
+                    item.setSizeHint(item_widget.sizeHint())
+
                     self.list_widget.addItem(item)
                     self.list_widget.setItemWidget(item, item_widget)
                     self.items[post_key] = item_widget
 
                 self.status_label.setText(f"共加载 {len(self.items)} 个帖子")
                 self.apply_filters()
-                
+
             self.batch_button_bar.setVisible(current_batch_mode)
             self.batch_toggle_switch.setChecked(current_batch_mode)
-        
+
         except Exception as e:
             import traceback
             logger.error(f"加载帖子列表失败: {e}\n{traceback.format_exc()}")
@@ -448,26 +724,30 @@ class PageManage(QWidget):
     def apply_filters(self):
         """应用搜索和类型过滤"""
         search_text = self.search_input.text().lower()
-        filter_type = self.type_filter_combo.currentText()
+        filter_mode = self.type_filter_combo.currentText().strip()
 
-        # 遍历所有列表项，根据条件显示/隐藏
         for i in range(self.list_widget.count()):
             item = self.list_widget.item(i)
             widget = self.list_widget.itemWidget(item)
-            
-            # 第一次过滤：根据下拉框选择的类型
+
+            # 类型过滤
             type_match = True
-            if filter_type.strip() == "只看楼主":
+            if filter_mode == "只看楼主":
                 type_match = "(只看楼主)" in widget.display_name
-            elif filter_type.strip() == "完整版":
+            elif filter_mode == "完整版":
                 type_match = "(完整版)" in widget.display_name
-            
-            # 第二次过滤：在第一次过滤的基础上，再根据搜索框内容
-            text_match = True  # 默认匹配，除非搜索框有内容
-            if search_text:  # 如果搜索框不为空
-                text_match = search_text in widget.display_name.lower()
-            
-            # 只有当两次过滤都通过时才显示
+
+            # 搜索匹配
+            text_match = True
+            if search_text:
+                if filter_mode == "标签搜索":
+                    text_match = any(search_text in t.lower() for t in widget.tags)
+                else:
+                    text_match = (
+                        search_text in widget.display_name.lower()
+                        or any(search_text in t.lower() for t in widget.tags)
+                    )
+
             item.setHidden(not (type_match and text_match))
 
     def clear_search(self):
@@ -551,6 +831,38 @@ class PageManage(QWidget):
         self.batch_recrawl_btn.setEnabled(has_selection)
         self.batch_delete_btn.setEnabled(has_selection)
         self.batch_export_btn.setEnabled(has_selection)
+
+    def handle_toggle_pin(self, post_key: str):
+        """切换帖子置顶状态"""
+        widget = self.items.get(post_key)
+        if not widget:
+            return
+        new_pinned = not widget.pinned
+        self.index_manager.set_pinned(post_key, new_pinned)
+        widget.handle_pin(new_pinned)
+        # 重新排序
+        self.load_posts()
+
+    def open_tag_editor(self, post_key: str):
+        """打开标签编辑弹窗"""
+        widget = self.items.get(post_key)
+        if not widget:
+            return
+        prefer_labels = self.index_manager.get_prefer_label()
+
+        dialog = TagEditDialog(
+            post_key, widget.display_name,
+            widget.tags, prefer_labels, self
+        )
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        new_tags, new_prefer = dialog.get_results()
+        self.index_manager.set_tags(post_key, new_tags)
+        if new_prefer:
+            self.index_manager.set_prefer_label(new_prefer)
+        widget.set_tags_data(new_tags)
+        self.apply_filters()
 
     def clear_selection(self):
         """清空选择，同时更新UI"""

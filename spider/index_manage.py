@@ -33,7 +33,7 @@ class IndexManager:
         加载索引（同步）
 
         Returns:
-            Dict[str, PostIndex]: 索引数据字典。
+            Dict[str, PostIndex]: 索引数据字典（不含 prefer_label 等元数据键）。
 
         Raises:
             FileNotFoundError: 如果索引文件不存在。
@@ -42,7 +42,7 @@ class IndexManager:
         try:
             with open(self.index_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                return {k: v for k, v in data.items()}
+            return {k: v for k, v in data.items() if isinstance(v, dict) and 'post_id' in v}
         except FileNotFoundError:
             logger.info("索引文件不存在，创建新索引")
             return {}
@@ -157,9 +157,53 @@ class IndexManager:
         if preserve_last_crawled and index_key in index:
             index_entry['last_crawled'] = index[index_key]['last_crawled']
 
+        # 保留已有的 pinned / tags
+        if index_key in index:
+            existing = index[index_key]
+            if existing.get('pinned'):
+                index_entry['pinned'] = True
+            if existing.get('tags'):
+                index_entry['tags'] = list(existing['tags'])
+
         index[index_key] = index_entry
         self.save_index(index)
         logger.info(f"已添加到索引: 「{display_name}」")
+
+    def set_pinned(self, post_key: str, pinned: bool) -> None:
+        """设置帖子置顶状态"""
+        index = self.load_index()
+        if post_key in index:
+            index[post_key]['pinned'] = pinned
+            self.save_index(index)
+            logger.info(f"{'置顶' if pinned else '取消置顶'}: 「{index[post_key].get('display_name', post_key)}」")
+
+    def set_tags(self, post_key: str, tags: list[str]) -> None:
+        """设置帖子的标签列表"""
+        index = self.load_index()
+        if post_key in index:
+            index[post_key]['tags'] = tags
+            self.save_index(index)
+            logger.info(f"更新标签: 「{index[post_key].get('display_name', post_key)}」")
+
+    def get_prefer_label(self) -> list[str]:
+        """获取用户常用标签列表"""
+        try:
+            with open(self.index_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            return data.get('prefer_label', [])
+        except Exception:
+            return []
+
+    def set_prefer_label(self, labels: list[str]) -> None:
+        """设置用户常用标签列表（最多6个）"""
+        try:
+            with open(self.index_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            data['prefer_label'] = labels[:6]
+            with open(self.index_file, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            logger.warning(f"保存 prefer_label 失败: {e}")
         
     def check_repeated_url(self, url: str, see_lz: bool = False) -> str:
         """
