@@ -53,6 +53,11 @@
 ![帖子修改截图](assets/screenshot/import_1.png)
 ![帖子修改截图](assets/screenshot/import_2.png)
 
+### 标签与顶置
+
+![帖子修改截图](assets/screenshot/pin_and_label.png)
+![帖子修改截图](assets/screenshot/label_manage.png)
+
 ---
 
 ## 功能
@@ -66,6 +71,7 @@
 * 内容搜索与图片所在楼层跳转
 * 对帖子内容无伤化修改（修改部分保存在patches文件夹中）
 * 帖子导入/导出，支持数据迁移与完整性校验
+* 定制标签与顶置帖子
 
 ---
 
@@ -156,7 +162,7 @@ pyinstaller TiebaShelf.spec
 * 单帖更新 / 重新爬取 / 删除
 * 批量操作
 * 搜索与筛选
-* 右键菜单的使用本地默认md阅读器，编辑帖子，打开资源目录等
+* 右键菜单的使用本地默认md阅读器，编辑帖子，打开资源目录，标签和顶置功能等
 
 ### 导入与导出
 
