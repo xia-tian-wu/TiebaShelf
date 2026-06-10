@@ -1,5 +1,4 @@
 import os
-import json
 import webbrowser
 from pathlib import Path
 from PySide6.QtWidgets import (
@@ -672,7 +671,7 @@ class PageManage(QWidget):
             current_batch_mode = self.batch_mode
             self.selected_keys.clear()
 
-            index_data = self.index_manager.load_index()
+            index_data, _ = self.index_manager.load_index()
             if not index_data:
                 self.status_label.setText("暂无帖子数据")
             else:
@@ -933,15 +932,15 @@ class PageManage(QWidget):
 
 
     # ========== 单个操作 ==========
-    def handle_update(self, post_key: str):
-        """处理单个帖子的增量更新"""
+    def handle_single_post(self, post_key: str, task_type: str):
+        """处理单个帖子的增量更新或重新爬取"""
         if self.is_task_running:
             QMessageBox.warning(self, "操作受限", "当前有任务正在执行，请等待完成后再操作。")
             return
             
         # 获取帖子信息
         try:
-            index_data = self.index_manager.load_index()
+            index_data, _ = self.index_manager.load_index()
             if post_key not in index_data:
                 QMessageBox.warning(self, "错误", f"帖子 {post_key} 在索引中不存在。")
                 return
@@ -950,33 +949,22 @@ class PageManage(QWidget):
             url = post_info['url']
             
             # 启动异步任务
-            self.start_async_task(update_urls=[url], post_keys=[post_key], task_type="update")
+            if task_type == "update":
+                self.start_async_task(update_urls=[url], post_keys=[post_key], task_type=task_type)
+            elif task_type == "recrawl":
+                self.start_async_task(recrawl_urls=[url], post_keys=[post_key], task_type=task_type)
         except Exception as e:
             logger.error(f"获取帖子信息失败: {e}")
             QMessageBox.critical(self, "错误", f"获取帖子信息失败: {str(e)}")
+ 
+    def handle_update(self, post_key: str):
+        """处理单个帖子的增量更新"""
+        self.handle_single_post(post_key, task_type="update")
 
     def handle_recrawl(self, post_key: str):
         """处理单个帖子的重新爬取"""
-        if self.is_task_running:
-            QMessageBox.warning(self, "操作受限", "当前有任务正在执行，请等待完成后再操作。")
-            return
-            
-        # 获取帖子信息
-        try:
-            index_data = self.index_manager.load_index()
-            if post_key not in index_data:
-                QMessageBox.warning(self, "错误", f"帖子 {post_key} 在索引中不存在。")
-                return
-                
-            post_info = index_data[post_key]
-            url = post_info['url']
-            
-            # 启动异步任务（重新爬取 = 新爬取）
-            self.start_async_task(recrawl_urls=[url], post_keys=[post_key], task_type="recrawl")
-        except Exception as e:
-            logger.error(f"获取帖子信息失败: {e}")
-            QMessageBox.critical(self, "错误", f"获取帖子信息失败: {str(e)}")
-
+        self.handle_single_post(post_key, task_type="recrawl")
+       
     def handle_delete(self, post_key: str):
         """处理单个帖子的删除"""
         if self.is_task_running:
@@ -985,7 +973,7 @@ class PageManage(QWidget):
             
         # 获取帖子信息
         try:
-            index_data = self.index_manager.load_index()
+            index_data, _ = self.index_manager.load_index()
             if post_key not in index_data:
                 QMessageBox.warning(self, "错误", f"帖子 {post_key} 在索引中不存在。")
                 return
@@ -1027,7 +1015,7 @@ class PageManage(QWidget):
             self.is_task_running = False
 
     # ========== 批量操作 ==========
-    def batch_update(self):
+    def handle_batch(self, task_type: str):
         """批量增量更新"""
         if self.is_task_running:
             QMessageBox.warning(self, "操作受限", "当前有任务正在执行，请等待完成后再操作。")
@@ -1039,7 +1027,7 @@ class PageManage(QWidget):
         
         try:
             # 获取选中帖子的URL列表
-            index_data = self.index_manager.load_index()
+            index_data, _ = self.index_manager.load_index()
             update_urls = []
             
             for post_key in self.selected_keys:
@@ -1051,39 +1039,21 @@ class PageManage(QWidget):
                 return
                 
             # 启动异步任务
-            self.start_async_task(update_urls=update_urls, post_keys=list(self.selected_keys), task_type="update")
+            if task_type == "update":
+                self.start_async_task(update_urls=update_urls, post_keys=list(self.selected_keys), task_type=task_type)
+            elif task_type == "recrawl":
+                self.start_async_task(recrawl_urls=update_urls, post_keys=list(self.selected_keys), task_type=task_type)
         except Exception as e:
-            logger.error(f"批量更新准备失败: {e}")
-            QMessageBox.critical(self, "错误", f"批量更新准备失败: {str(e)}")
+            logger.error(f"批量操作准备失败: {e}")
+            QMessageBox.critical(self, "错误", f"批量操作准备失败: {str(e)}")
+            
+    def batch_update(self):
+        """批量增量更新"""
+        self.handle_batch(task_type="update")
 
     def batch_recrawl(self):
         """批量重新爬取"""
-        if self.is_task_running:
-            QMessageBox.warning(self, "操作受限", "当前有任务正在执行，请等待完成后再操作。")
-            return
-            
-        if not self.selected_keys:
-            QMessageBox.information(self, "提示", "请先选择要操作的帖子。")
-            return
-        
-        try:
-            # 获取选中帖子的URL列表
-            index_data = self.index_manager.load_index()
-            new_urls = []
-            
-            for post_key in self.selected_keys:
-                if post_key in index_data:
-                    new_urls.append(index_data[post_key]['url'])
-            
-            if not new_urls:
-                QMessageBox.information(self, "提示", "没有有效的帖子需要重新爬取。")
-                return
-                
-            # 启动异步任务（重新爬取 = 新爬取）
-            self.start_async_task(recrawl_urls=new_urls, post_keys=list(self.selected_keys), task_type="recrawl")
-        except Exception as e:
-            logger.error(f"批量重新爬取准备失败: {e}")
-            QMessageBox.critical(self, "错误", f"批量重新爬取准备失败: {str(e)}")
+        self.handle_batch(task_type="recrawl")
 
     def batch_delete(self):
         """批量删除"""
@@ -1110,7 +1080,7 @@ class PageManage(QWidget):
                 self.is_task_running = True
                 
                 # 执行删除
-                index_data = self.index_manager.load_index()
+                index_data, _ = self.index_manager.load_index()
                 success_count = 0
                 failed_count = 0
                 
@@ -1163,17 +1133,16 @@ class PageManage(QWidget):
         else:
             QMessageBox.warning(self, "导出失败", "导出过程中出现错误，请查看日志")
 
-    def start_async_task(self, new_urls=None, update_urls=None, recrawl_urls=None, post_keys=None, task_type="update"):
+    def start_async_task(self, update_urls=None, recrawl_urls=None, post_keys=None, task_type="update"):
         """启动异步任务"""
 
         # 关键：设置新的事件循环，确保线程安全
         asyncio.set_event_loop(asyncio.new_event_loop())
         self.cleanup_worker()
 
-        new_urls = new_urls or []
         update_urls = update_urls or []
         recrawl_urls = recrawl_urls or []
-        total = len(new_urls) + len(update_urls) + len(recrawl_urls)
+        total = len(update_urls) + len(recrawl_urls)
 
         if total == 0:
             return
@@ -1184,7 +1153,7 @@ class PageManage(QWidget):
 
         # ===== 创建线程 =====
         self.worker_thread = QThread()
-        self.worker = AsyncWorker(new_urls, update_urls, recrawl_urls)
+        self.worker = AsyncWorker([], update_urls, recrawl_urls)
         self.worker.moveToThread(self.worker_thread)
 
         # ===== 连接信号 =====
@@ -1197,7 +1166,7 @@ class PageManage(QWidget):
         
         # 启动任务并更新状态
         self.worker_thread.start()
-        total = len(new_urls or []) + len(update_urls or []) + len(recrawl_urls or [])
+        total = len(update_urls or []) + len(recrawl_urls or [])
 
         # 字典映射：task_type → (任务名, 对应数值)
         task_map = {

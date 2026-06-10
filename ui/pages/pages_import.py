@@ -167,7 +167,7 @@ class PageImport(QWidget):
         post_id = post_entry['post_id']
         see_lz = post_entry['see_lz']
         post_key = f"{post_id}_{'see_lz' if see_lz else 'full'}"
-        index = self.index_manager.load_index()
+        index, _ = self.index_manager.load_index()
         existing = index.get(post_key)
 
         if not existing:

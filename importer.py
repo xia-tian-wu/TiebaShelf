@@ -81,7 +81,7 @@ def import_selected(
 
     export_dir = Path(export_dir)
     posts = export_data.get('posts', [])
-    index = index_manager.load_index()
+    index, _ = index_manager.load_index()
     success = 0
     skipped = 0
     failed = 0

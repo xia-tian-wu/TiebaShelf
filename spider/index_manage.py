@@ -2,7 +2,7 @@ import json
 import shutil
 from pathlib import Path
 from logger import logger
-from typing import Dict
+from typing import Dict, Tuple
 from spider.type_models import PostData, PostIndex, FloorData
 
 from spider.utils import extract_posts_id, get_safe_filename, get_display_name, json_to_md_path, post_subdir_name
@@ -28,12 +28,13 @@ class IndexManager:
             logger.info("创建新的索引文件")
 
             
-    def load_index(self) -> Dict[str, PostIndex]:
+    def load_index(self) -> Tuple[Dict[str, PostIndex], Dict]:
         """
         加载索引（同步）
 
         Returns:
-            Dict[str, PostIndex]: 索引数据字典（不含 prefer_label 等元数据键）。
+            - 帖子条目Dict[str, PostIndex]：键为 post_key，值为 PostIndex 格式。
+            - 元数据Dict：prefer_label 等根级键值对。
 
         Raises:
             FileNotFoundError: 如果索引文件不存在。
@@ -42,34 +43,40 @@ class IndexManager:
         try:
             with open(self.index_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            return {k: v for k, v in data.items() if isinstance(v, dict) and 'post_id' in v}
+            posts = {k: v for k, v in data.items() if isinstance(v, dict) and 'post_id' in v}
+            meta = {k: v for k, v in data.items() if not (isinstance(v, dict) and 'post_id' in v)}
+            return posts, meta
         except FileNotFoundError:
             logger.info("索引文件不存在，创建新索引")
-            return {}
+            return {}, {}
         except json.JSONDecodeError as e:
             logger.warning(f"索引文件格式错误: {e}，使用空索引")
-            return {}
+            return {}, {}
         except Exception as e:
             logger.warning(f"加载索引失败: {e}，使用空索引")
-            return {}
-        
-    def save_index(self, index: Dict[str, PostIndex]) -> None:
+            return {}, {}
+
+    def save_index(self, index: Dict[str, PostIndex], meta: dict | None = None) -> None:
         """
         保存索引（同步）
 
         Args:
-            index (Dict[str, PostIndex]): 要保存的索引数据。
+            index (Dict[str, PostIndex]): 帖子条目数据。
+            meta (dict | None): 根级元数据（prefer_label 等），会合并后写入。
 
         Raises:
             Exception: 如果保存索引失败。
         """
         try:
+            to_write = dict(meta) if meta else {}
+            to_write.update(index)
+
             if self.index_file.exists():
                 backup_file = self.index_file.with_suffix('.json.bak')
                 shutil.copy2(self.index_file, backup_file)
 
             with open(self.index_file, 'w', encoding='utf-8') as f:
-                json.dump(index, f, ensure_ascii=False, indent=2)
+                json.dump(to_write, f, ensure_ascii=False, indent=2)
         except Exception as e:
             logger.warning(f"保存索引失败: {e}")
             
@@ -120,7 +127,7 @@ class IndexManager:
         Returns:
             bool: 是否存在。
         """
-        index = self.load_index()
+        index, _ = self.load_index()
         key = self.get_index_key(post_id, see_lz)
         return key in index
 
@@ -135,7 +142,7 @@ class IndexManager:
         Raises:
             Exception: 如果保存索引失败。
         """
-        index = self.load_index()
+        index, meta = self.load_index()
         filename = get_safe_filename(
             post_data['post_id'], post_data['see_lz'], post_data['title']
         )
@@ -166,44 +173,35 @@ class IndexManager:
                 index_entry['tags'] = list(existing['tags'])
 
         index[index_key] = index_entry
-        self.save_index(index)
+        self.save_index(index, meta)
         logger.info(f"已添加到索引: 「{display_name}」")
 
     def set_pinned(self, post_key: str, pinned: bool) -> None:
         """设置帖子置顶状态"""
-        index = self.load_index()
+        index, meta = self.load_index()
         if post_key in index:
             index[post_key]['pinned'] = pinned
-            self.save_index(index)
+            self.save_index(index, meta)
             logger.info(f"{'置顶' if pinned else '取消置顶'}: 「{index[post_key].get('display_name', post_key)}」")
 
     def set_tags(self, post_key: str, tags: list[str]) -> None:
         """设置帖子的标签列表"""
-        index = self.load_index()
+        index, meta = self.load_index()
         if post_key in index:
             index[post_key]['tags'] = tags
-            self.save_index(index)
+            self.save_index(index, meta)
             logger.info(f"更新标签: 「{index[post_key].get('display_name', post_key)}」")
 
     def get_prefer_label(self) -> list[str]:
         """获取用户常用标签列表"""
-        try:
-            with open(self.index_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            return data.get('prefer_label', [])
-        except Exception:
-            return []
+        _, meta = self.load_index()
+        return meta.get('prefer_label', [])
 
     def set_prefer_label(self, labels: list[str]) -> None:
         """设置用户常用标签列表（最多6个）"""
-        try:
-            with open(self.index_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            data['prefer_label'] = labels[:6]
-            with open(self.index_file, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            logger.warning(f"保存 prefer_label 失败: {e}")
+        index, meta = self.load_index()
+        meta['prefer_label'] = labels[:6]
+        self.save_index(index, meta)
         
     def check_repeated_url(self, url: str, see_lz: bool = False) -> str:
         """
@@ -219,7 +217,7 @@ class IndexManager:
         post_id = extract_posts_id(url=url)
         if not post_id:
             return "new"
-        index = self.load_index()
+        index, _ = self.load_index()
         index_key = self.get_index_key(post_id, see_lz)
         if index_key not in index:
             return "new"
@@ -248,7 +246,7 @@ class IndexManager:
         try:
             # 1. 获取索引键并加载索引
             index_key = self.get_index_key(post_id, see_lz)
-            index = self.load_index()
+            index, meta = self.load_index()
             
             if index_key not in index:
                 logger.warning(f"索引中未找到帖子 {index_key}，跳过删除")
@@ -293,7 +291,7 @@ class IndexManager:
 
             # 6. 从索引中移除
             del index[index_key]
-            self.save_index(index)
+            self.save_index(index, meta)
             logger.info(f"已从索引中移除: 「{display_name}」")
             
             return True

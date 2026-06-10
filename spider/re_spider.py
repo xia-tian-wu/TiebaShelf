@@ -200,7 +200,7 @@ class TiebaShelf:
                 raise ex.InvalidURLError("无法提取帖子 ID", url=url)
 
             # 2. 检查索引（强制重爬时跳过）
-            index = self.index_manager.load_index()
+            index, _ = self.index_manager.load_index()
             index_key = self.index_manager.get_index_key(tid, current_see_lz)
 
             history_post_data: Optional[PostData] = None

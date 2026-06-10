@@ -28,7 +28,7 @@ def export_posts(post_keys: List[str], export_root: str | Path, index_manager: I
     export_dir = export_root / f"TiebaShelf_share_{timestamp}"
 
     try:
-        index = index_manager.load_index()
+        index, _ = index_manager.load_index()
     except Exception as e:
         logger.error(f"加载索引失败: {e}")
         return None
