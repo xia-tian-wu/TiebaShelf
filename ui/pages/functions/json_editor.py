@@ -164,9 +164,26 @@ class JsonEditorWindow(QMainWindow):
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(6, 6, 6, 6)
 
+        title_row = QWidget()
+        title_layout = QHBoxLayout(title_row)
+        title_layout.setContentsMargins(0, 0, 0, 0)
+        title_layout.setSpacing(4)
+
         title = QLabel("楼层列表")
-        title.setStyleSheet("font-weight: bold; font-size: 13px; color: #333; padding: 4px 0;")
-        layout.addWidget(title)
+        title.setStyleSheet("font-weight: bold; font-size: 13px; color: #333;")
+        title_layout.addWidget(title)
+
+        self.floor_jump_input = QLineEdit()
+        self.floor_jump_input.setPlaceholderText("输入跳转楼层数")
+        self.floor_jump_input.setFixedWidth(120)
+        self.floor_jump_input.setStyleSheet(
+            "border: 1px solid #ccc; border-radius: 3px; padding: 2px 6px; font-size: 12px;"
+            "background: white; color: #333;"
+        )
+        self.floor_jump_input.returnPressed.connect(self._jump_to_floor_from_input)
+        title_layout.addWidget(self.floor_jump_input)
+
+        layout.addWidget(title_row)
 
         self.floor_list = QListWidget()
         self.floor_list.setObjectName("editorFloorList")
@@ -241,11 +258,34 @@ class JsonEditorWindow(QMainWindow):
                 self.floor_info_label.hide()
                 if self.current_floor_widget:
                     self.current_floor_widget.deleteLater()
-                self.current_floor_widget = FloorEditWidget(floor, self.image_dir, self.patch_image_dir, self)
+                floor_data = dict(floor)
+                if floor_num in self.floor_modifications:
+                    floor_data.update(self.floor_modifications[floor_num])
+                self.current_floor_widget = FloorEditWidget(floor_data, self.image_dir, self.patch_image_dir, self)
                 self.current_floor_widget.modification_changed.connect(self._on_floor_modified)
                 self.scroll.setWidget(self.current_floor_widget)
                 self.floor_widgets[floor_num] = self.current_floor_widget
                 break
+
+    def _jump_to_floor_from_input(self):
+        """从跳转输入框获取数字，定位到对应楼层。"""
+        text = self.floor_jump_input.text().strip()
+        if not text.isdigit():
+            QMessageBox.warning(self, "提示", "请输入正确存在的楼层编号")
+            self.floor_jump_input.clear()
+            return
+
+        target = int(text)
+        for i in range(self.floor_list.count()):
+            item = self.floor_list.item(i)
+            fn = item.data(Qt.UserRole)
+            if fn == target:
+                self.floor_list.setCurrentItem(item)
+                self.floor_jump_input.clear()
+                return
+
+        QMessageBox.warning(self, "提示", "请输入正确存在的楼层编号")
+        self.floor_jump_input.clear()
 
     def _save_current_modifications(self):
         """将当前楼层编辑器的数据保存到 floor_modifications。"""

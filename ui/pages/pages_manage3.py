@@ -57,7 +57,7 @@ class ManageItemWidget(QWidget):
         layout.setContentsMargins(5, 5, 5, 5)
         layout.setSpacing(0)
 
-        # Row 1: name + tags + buttons
+        # 展示名
         row1 = QHBoxLayout()
         row1.setSpacing(4)
 
@@ -66,7 +66,12 @@ class ManageItemWidget(QWidget):
         self.name_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         row1.addWidget(self.name_label)
 
-        # tag chips container
+        # 宽度占位，避免批量模式下刷新坍缩
+        self._h_keeper = QWidget()
+        self._h_keeper.setFixedSize(0, 28)
+        row1.addWidget(self._h_keeper)
+
+        # 标签容器
         self.tag_container = QWidget()
         self.tag_container.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         tag_layout = QHBoxLayout(self.tag_container)
@@ -529,6 +534,17 @@ class TagEditDialog(QDialog):
 
     def get_results(self) -> tuple[list[str], list[str]]:
         return list(self.current_tags), list(self.prefer_labels)
+
+    def keyPressEvent(self, event):
+        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+            focus = QApplication.focusWidget()
+            if focus is self.tag_input:
+                self._add_tag()
+                return
+            if focus is self.prefer_input:
+                self._add_prefer()
+                return
+        super().keyPressEvent(event)
 
 
 class PageManage(QWidget):

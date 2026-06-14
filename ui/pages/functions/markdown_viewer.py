@@ -67,6 +67,33 @@ body {{
 .toc a:hover {{ color: #4a90e2; background: rgba(74, 144, 226, 0.1); }}
 .toc a.active {{ color: #4a90e2; font-weight: bold; background: rgba(74, 144, 226, 0.15); border-left: 3px solid #4a90e2; }}
 
+/* --- 侧边栏跳转输入框 --- */
+.toc-input-sticky {{
+    position: sticky; top: 0; z-index: 2;
+    padding: 0 0 8px 0; direction: ltr;
+    background: inherit;
+}}
+.toc-jump-input {{
+    width: 100%; box-sizing: border-box; padding: 6px 8px;
+    border: 1px solid #ddd; border-radius: 4px; font-size: 13px;
+    outline: none; transition: border-color 0.2s; direction: ltr;
+    background: white; color: #333;
+}}
+.toc-jump-input:focus {{ border-color: #4a90e2; }}
+.toc-jump-input::placeholder {{ color: #aaa; }}
+body.dark-mode .toc-jump-input {{ background: #2d2d44; color: #d0d0e0; border-color: #555577; }}
+body.dark-mode .toc-jump-input:focus {{ border-color: #7eb8ff; }}
+body.dark-mode .toc-jump-input::placeholder {{ color: #777; }}
+
+/* --- 侧边栏 toast 提示 --- */
+.toc-toast {{
+    position: fixed; top: 12px; left: 50%; transform: translateX(-50%);
+    background: #e74c3c; color: white; padding: 8px 18px; border-radius: 6px;
+    font-size: 13px; z-index: 9999; opacity: 0; transition: opacity 0.25s;
+    pointer-events: none;
+}}
+.toc-toast.show {{ opacity: 1; }}
+
 /* --- 主内容区域 --- */
 .container {{ flex: 1; max-width: 900px; min-width: 0; }}
 .container > p, .container > ul, .container > ol, .container > blockquote, .container > pre, .container > img {{
@@ -276,10 +303,14 @@ body.dark-mode ::-webkit-scrollbar-track {{ background: #2d2d44; }}
 
 <div class="layout">
     <div class="toc-wrapper">
+        <div class="toc-input-sticky">
+            <input type="text" id="jumpInput" class="toc-jump-input" placeholder="跳转至：1~总楼层">
+        </div>
         <div class="toc" id="toc">
             <div style="font-size:12px; color:#999; padding:10px;">加载中...</div>
         </div>
     </div>
+    <div class="toc-toast" id="tocToast"></div>
     <div class="container">
         {html_body}
     </div>
@@ -623,6 +654,47 @@ document.addEventListener('DOMContentLoaded', () => {{
         searchWidget.classList.add('expanded');
         searchInput.focus();
     }};
+
+    /* ==========================================
+       5. 侧边栏楼层跳转输入框
+       ========================================== */
+    // toast 提示
+    const toastEl = document.getElementById('tocToast');
+    let toastTimer = null;
+    function showToast(msg) {{
+        toastEl.textContent = msg;
+        toastEl.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toastEl.classList.remove('show'), 2500);
+    }}
+
+    const jumpInput = document.getElementById('jumpInput');
+    if (jumpInput) {{
+        // 统计侧边栏楼层数量（排除 "简介"）
+        const floorLinks = [...document.querySelectorAll(".toc a")].filter(a =>
+            a.textContent.startsWith("楼层 ")
+        );
+        const maxFloor = floorLinks.length;
+
+        if (maxFloor > 0) {{
+            jumpInput.placeholder = `跳转至：1~${{maxFloor}}`;
+            jumpInput.addEventListener('keydown', (e) => {{
+                if (e.key === 'Enter') {{
+                    const val = jumpInput.value.trim();
+                    const num = Number(val);
+                    if (!Number.isInteger(num) || num < 1 || num > maxFloor) {{
+                        showToast(`请输入 1~${{maxFloor}} 之间的楼层数字`);
+                        jumpInput.value = '';
+                        return;
+                    }}
+                    const targetText = `楼层 ${{num}}`;
+                    const link = floorLinks.find(a => a.textContent === targetText);
+                    if (link) link.click();
+                    jumpInput.value = '';
+                }}
+            }});
+        }}
+    }}
 }});
 </script>
 </body>
