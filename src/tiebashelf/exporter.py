@@ -4,11 +4,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import List
 
-from config import DATA_DIR, IMAGES_DIR
-from logger import logger
-from markdown_builder import convert_post_json_to_markdown
-from spider.index_manage import IndexManager
-from spider.utils import get_display_name, post_subdir_name
+from tiebashelf.config import DATA_DIR, IMAGES_DIR
+from tiebashelf.logger import logger
+from tiebashelf.markdown_builder import convert_post_json_to_markdown
+from tiebashelf.spider.index_manage import IndexManager
+from tiebashelf.spider.utils import get_display_name, post_subdir_name
 
 
 def export_posts(post_keys: List[str], export_root: str | Path, index_manager: IndexManager):

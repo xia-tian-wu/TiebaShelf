@@ -14,19 +14,17 @@ class ToggleSwitch(QWidget):
         # 直接使用注册后的"offset"属性，Qt可识别，无报错
         self._animation = QPropertyAnimation(self, b"offset", self)
         self._animation.setDuration(200)
-        self._animation.setEasingCurve(QEasingCurve.OutQuad)
+        self._animation.setEasingCurve(QEasingCurve.Type.OutQuad)
     
-    # 关键：使用@property装饰器（PySide6的Property）注册Qt属性
-    @Property(float)  # 定义属性类型为float，支持动画的连续数值变化
-    def offset(self):
-        # 取值方法：返回私有变量_offset的值
+    # PySide6 Property：getter/setter 显式命名，避免 decorator 混淆
+    def _get_offset(self) -> float:
         return self._offset
-    
-    @offset.setter
-    def offset(self, value):
-        # 赋值方法：接收动画传入的数值，更新并刷新界面
+
+    def _set_offset(self, value: float):
         self._offset = value
-        self.update()  # 触发paintEvent，实时重绘滑块
+        self.update()
+
+    offset = Property(float, _get_offset, _set_offset)
     
     def isChecked(self):
         return self._checked
@@ -46,7 +44,7 @@ class ToggleSwitch(QWidget):
         
     def paintEvent(self, event):
         painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         
         # === 滑轨（Track）绘制 ===
         track_width = self.width()      # 40
@@ -57,14 +55,14 @@ class ToggleSwitch(QWidget):
         bg_color = QColor(155, 205, 246) if self._checked else QColor(200, 200, 200)
    
         # 画内填充（覆盖边框内部）
-        painter.setPen(Qt.NoPen)
+        painter.setPen(Qt.PenStyle.NoPen)
         painter.setBrush(QBrush(bg_color))
         # 缩小矩形以避开边框（内缩 1.5px，因为边框宽3px，每边占1.5px）
         inner_rect = QRectF(1.5, 1.5, track_width - 3, track_height - 3)
         painter.drawRoundedRect(inner_rect, corner_radius - 1.5, corner_radius - 1.5)
         
         # === 滑块（Thumb）绘制 ===
-        thumb_size = 18  # 🔸 原14 → 现18，明显放大
+        thumb_size = 18  
         # 滑块位置：在 2px 到 (40 - 18 - 2) = 20px 之间滑动
         
         thumb_x = int(self._offset)

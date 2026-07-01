@@ -11,15 +11,16 @@ from pathlib import Path
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
     QLabel, QPushButton, QLineEdit, QTextEdit, QFileDialog, QMessageBox,
-    QSplitter, QFrame, QScrollArea, QFormLayout, QGroupBox, QToolButton, QToolBar, QSizePolicy
+    QSplitter, QFrame, QScrollArea, QFormLayout, QGroupBox, QToolButton, QToolBar, QSizePolicy,
+    QAbstractItemView
 )
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QIcon
 
-from config import MARKDOWN_DIR, IMAGES_DIR, PATCHES_DIR, SOURCE_PATH
-from logger import logger
-from markdown_builder import _render_markdown_from_post_data
-from spider.utils import post_subdir_name
+from tiebashelf.config import MARKDOWN_DIR, IMAGES_DIR, PATCHES_DIR, PACKAGE_DIR
+from tiebashelf.logger import logger
+from tiebashelf.markdown_builder import _render_markdown_from_post_data
+from tiebashelf.spider.utils import post_subdir_name
 
 
 class JsonEditorWindow(QMainWindow):
@@ -37,7 +38,7 @@ class JsonEditorWindow(QMainWindow):
         self.image_dir = Path()
         self._hint_expanded = False
 
-        icon_path = SOURCE_PATH / 'ui' / 'momo.ico'
+        icon_path = PACKAGE_DIR / 'ui' / 'momo.ico'
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
 
@@ -133,12 +134,12 @@ class JsonEditorWindow(QMainWindow):
 
         undo_btn = QToolButton()
         undo_btn.setText("撤销修改")
-        undo_btn.setToolButtonStyle(Qt.ToolButtonTextOnly)
+        undo_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
         undo_btn.clicked.connect(self._undo_and_close)
         toolbar.addWidget(undo_btn)
 
         spacer_left = QWidget()
-        spacer_left.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        spacer_left.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         toolbar.addWidget(spacer_left)
 
         hint_label = QLabel("请勿手动修改 [图片：] / [补丁：] 标记，应通过图片列表管理")
@@ -146,12 +147,12 @@ class JsonEditorWindow(QMainWindow):
         toolbar.addWidget(hint_label)
 
         spacer_right = QWidget()
-        spacer_right.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        spacer_right.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         toolbar.addWidget(spacer_right)
 
         save_btn = QToolButton()
         save_btn.setText("保存修改")
-        save_btn.setToolButtonStyle(Qt.ToolButtonTextOnly)
+        save_btn.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
         save_btn.clicked.connect(self._save_and_close)
         toolbar.addWidget(save_btn)
 
@@ -187,14 +188,14 @@ class JsonEditorWindow(QMainWindow):
 
         self.floor_list = QListWidget()
         self.floor_list.setObjectName("editorFloorList")
-        self.floor_list.setSelectionMode(QListWidget.SingleSelection)
+        self.floor_list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.floor_list.currentRowChanged.connect(self._on_floor_selected)
 
         for floor in self.post_data['floors']:
             fn = floor['floor_number']
             author = floor.get('author', '未知')
             item = QListWidgetItem(f"[{fn}楼] {author}")
-            item.setData(Qt.UserRole, fn)
+            item.setData(Qt.ItemDataRole.UserRole, fn)
             self.floor_list.addItem(item)
 
         layout.addWidget(self.floor_list)
@@ -208,8 +209,8 @@ class JsonEditorWindow(QMainWindow):
         layout.setSpacing(6)
 
         self.hint_toggle = QToolButton()
-        self.hint_toggle.setToolButtonStyle(Qt.ToolButtonTextOnly)
-        self.hint_toggle.setCursor(Qt.PointingHandCursor)
+        self.hint_toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextOnly)
+        self.hint_toggle.setCursor(Qt.CursorShape.PointingHandCursor)
         self.hint_toggle.setText("▸ 当前修改：0 个楼层")
         self.hint_toggle.setStyleSheet(
             "QToolButton { background: none; border: none; color: #888; font-size: 12px; text-align: left; padding: 2px 0; }"
@@ -227,7 +228,7 @@ class JsonEditorWindow(QMainWindow):
         layout.addWidget(self.hint_content)
 
         sep = QFrame()
-        sep.setFrameShape(QFrame.HLine)
+        sep.setFrameShape(QFrame.Shape.HLine)
         sep.setStyleSheet("color: #ddd;")
         layout.addWidget(sep)
 
@@ -235,9 +236,9 @@ class JsonEditorWindow(QMainWindow):
         self.floor_info_label.setStyleSheet("color: #999; font-size: 13px; padding: 8px 0;")
         layout.addWidget(self.floor_info_label)
 
-        self.scroll = QScrollArea()
+        self.scroll: QScrollArea = QScrollArea()
         self.scroll.setWidgetResizable(True)
-        self.scroll.setFrameShape(QFrame.NoFrame)
+        self.scroll.setFrameShape(QFrame.Shape.NoFrame)
         layout.addWidget(self.scroll)
 
         self.current_floor_widget = None
@@ -248,7 +249,7 @@ class JsonEditorWindow(QMainWindow):
         if row < 0:
             return
         item = self.floor_list.item(row)
-        floor_num = item.data(Qt.UserRole)
+        floor_num = item.data(Qt.ItemDataRole.UserRole)
 
         if self.current_floor_widget:
             self._save_current_modifications()
@@ -278,7 +279,7 @@ class JsonEditorWindow(QMainWindow):
         target = int(text)
         for i in range(self.floor_list.count()):
             item = self.floor_list.item(i)
-            fn = item.data(Qt.UserRole)
+            fn = item.data(Qt.ItemDataRole.UserRole)
             if fn == target:
                 self.floor_list.setCurrentItem(item)
                 self.floor_jump_input.clear()
@@ -361,7 +362,7 @@ class JsonEditorWindow(QMainWindow):
 
         for i in range(self.floor_list.count()):
             item = self.floor_list.item(i)
-            fn = item.data(Qt.UserRole)
+            fn = item.data(Qt.ItemDataRole.UserRole)
             original = self.original_floors.get(fn, {})
             mod_data = self.floor_modifications.get(fn)
             if mod_data and self._get_hints_from_data(mod_data, original, fn):
@@ -391,9 +392,9 @@ class JsonEditorWindow(QMainWindow):
         reply = QMessageBox.question(
             self, "确认撤销",
             "确定要撤销所有修改吗？\n补丁文件将被删除，帖子恢复为原始内容。",
-            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.No
         )
-        if reply != QMessageBox.Yes:
+        if reply != QMessageBox.StandardButton.Yes:
             return
 
         try:
@@ -576,8 +577,8 @@ class FloorEditWidget(QWidget):
         form_layout = QFormLayout(form_widget)
         form_layout.setSpacing(6)
         form_layout.setContentsMargins(0, 0, 0, 0)
-        form_layout.setLabelAlignment(Qt.AlignRight)
-        form_layout.setFieldGrowthPolicy(QFormLayout.ExpandingFieldsGrow)
+        form_layout.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        form_layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
 
         label_style = "font-size: 13px; color: #444; font-weight: bold;"
 

@@ -3,9 +3,9 @@ import re
 import json
 from pathlib import Path
 from urllib.parse import quote
-from config import MARKDOWN_DIR, IMAGES_DIR, PATCHES_DIR
-from spider.type_models import PostData
-from spider.utils import post_subdir_name
+from tiebashelf.config import MARKDOWN_DIR, IMAGES_DIR, PATCHES_DIR
+from tiebashelf.spider.type_models import PostData
+from tiebashelf.spider.utils import post_subdir_name
 
 def convert_post_json_to_markdown(
     json_path: str | Path,
@@ -161,7 +161,7 @@ def _apply_patch_if_exists(json_path: Path, post_data: dict) -> dict:
                     post_data['floors'][i].update(edited_floor)
                     break
     except Exception as e:
-        from logger import logger
+        from tiebashelf.logger import logger
         logger.warning(f"应用补丁文件失败 {patch_path}: {e}")
     
     return post_data

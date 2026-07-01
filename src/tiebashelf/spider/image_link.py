@@ -6,8 +6,9 @@ from typing import List, Dict, Optional, Tuple
 from pathlib import Path
 from urllib.parse import quote, urlparse
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-from logger import logger
-from spider.utils import get_headers
+from tiebashelf.spider.type_models import FloorData
+from tiebashelf.logger import logger
+from tiebashelf.spider.utils import get_headers
 
 # ===================== 配置常量 =====================
 MAX_DOWNLOAD_CONCURRENCY = 12
@@ -128,10 +129,14 @@ class TiebaImageDownloader:
     ) -> Optional[Path]:
         """
         下载单张图片的完整流程
-        :param preview_url: 图片预览页URL
-        :param save_dir: 保存目录
-        :param post_id: 帖子ID（用于防盗链）
-        :return: 下载成功返回本地Path，失败返回None
+
+        Args:
+            preview_url: 图片预览页URL
+            save_dir: 保存目录
+            post_id: 帖子ID（用于防盗链）
+
+        Returns:
+            下载成功返回本地Path，失败返回None
         """
         try:
             # 1. 从URL提取图片hash，用于命名
@@ -166,18 +171,22 @@ class TiebaImageDownloader:
     # ===================== 对外：批量下载+自动回填 =====================
     async def download_and_backfill(
         self,
-        new_floors: List[Dict],
+        new_floors: List[FloorData],
         new_images_list: List[str],
         save_dir: Path,
         post_id: str
     ) -> Tuple[int, Dict[str, Optional[Path]]]:
         """
         批量下载图片，并自动回填到 new_floors 的 local_images 字段
-        :param new_floors: 新增楼层列表（会被修改）
-        :param new_images_list: 新增图片URL列表
-        :param save_dir: 图片保存目录
-        :param post_id: 帖子ID
-        :return: (成功下载数量, {图片URL: 本地Path})
+
+        Args:
+            new_floors: 新增楼层列表（会被修改）
+            new_images_list: 新增图片URL列表
+            save_dir: 图片保存目录
+            post_id: 帖子ID
+
+        Returns:
+            (成功下载数量, {图片URL: 本地Path})
         """
         if not new_images_list:
             return 0, {}

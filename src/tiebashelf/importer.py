@@ -3,11 +3,11 @@ import shutil
 from pathlib import Path
 from typing import Tuple
 
-from config import POSTS_DIR, IMAGES_DIR, MARKDOWN_DIR
-from logger import logger
-from markdown_builder import convert_post_json_to_markdown
-from spider.index_manage import IndexManager
-from spider.type_models import PostData
+from tiebashelf.config import POSTS_DIR, IMAGES_DIR, MARKDOWN_DIR
+from tiebashelf.logger import logger
+from tiebashelf.markdown_builder import convert_post_json_to_markdown
+from tiebashelf.spider.index_manage import IndexManager
+from tiebashelf.spider.type_models import PostData
 
 
 def preview_export(export_dir: str | Path) -> dict | None:

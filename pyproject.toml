@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "tiebashelf"
+version = "2.7"
+description = "Tieba (百度贴吧) content archiving & management tool"
+requires-python = ">=3.11"
+
+[project.scripts]
+tiebashelf = "tiebashelf.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

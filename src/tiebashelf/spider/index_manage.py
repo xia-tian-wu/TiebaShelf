@@ -1,12 +1,12 @@
 import json
 import shutil
 from pathlib import Path
-from logger import logger
+from tiebashelf.logger import logger
 from typing import Dict, Tuple
-from spider.type_models import PostData, PostIndex, FloorData
+from tiebashelf.spider.type_models import PostData, PostIndex, FloorData
 
-from spider.utils import extract_posts_id, get_safe_filename, get_display_name, json_to_md_path, post_subdir_name
-from config import DATA_DIR, PATCHES_DIR
+from tiebashelf.spider.utils import extract_posts_id, get_safe_filename, get_display_name, json_to_md_path, post_subdir_name
+from tiebashelf.config import DATA_DIR, PATCHES_DIR
 
 class IndexManager:
     def __init__(self):
@@ -203,7 +203,7 @@ class IndexManager:
         meta['prefer_label'] = labels[:6]
         self.save_index(index, meta)
         
-    def check_repeated_url(self, url: str, see_lz: bool = False) -> str:
+    def check_repeated_url(self, url: str, see_lz: bool = False) -> str | None:
         """
         检查URL是否重复。
 

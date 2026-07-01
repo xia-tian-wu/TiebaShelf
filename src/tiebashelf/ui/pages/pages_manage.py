@@ -9,18 +9,18 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, Signal, QThread, Slot
 from PySide6.QtGui import QContextMenuEvent, QCursor, QAction, QGuiApplication, QMouseEvent
-from spider.index_manage import IndexManager
-from spider.utils import json_to_md_path
-from exporter import export_posts
-from ui.pages.functions.async_worker import AsyncWorker
-from ui.pages.markdown_viewer_page import MarkdownViewerWindow
-from logger import logger
+from tiebashelf.spider.index_manage import IndexManager
+from tiebashelf.spider.utils import json_to_md_path
+from tiebashelf.exporter import export_posts
+from tiebashelf.ui.pages.widgets.async_worker import AsyncWorker
+from tiebashelf.ui.pages.markdown_viewer_page import MarkdownViewerWindow
+from tiebashelf.logger import logger
 import asyncio
 
-from ui.pages.functions.toggle_switch import ToggleSwitch
-from ui.pages.functions.tag_chip_button import TagChipButton
+from tiebashelf.ui.pages.widgets.toggle_switch import ToggleSwitch
+from tiebashelf.ui.pages.widgets.tag_chip_button import TagChipButton
 
-from config import MARKDOWN_DIR
+from tiebashelf.config import MARKDOWN_DIR
 
 class ManageItemWidget(QWidget):
     """单个帖子的管理项（含按钮、标签、置顶）"""
@@ -234,7 +234,7 @@ class ManageItemWidget(QWidget):
             QMessageBox.warning(self, "提示", f"找不到 Markdown 文件：\n{md_file}")
             return
 
-        from ui.pages.functions.markdown_viewer import render_markdown_to_temp_html
+        from tiebashelf.ui.pages.widgets.markdown_viewer import render_markdown_to_temp_html
         temp_path = render_markdown_to_temp_html(md_file)
         os.startfile(temp_path)
 
@@ -273,8 +273,8 @@ class ManageItemWidget(QWidget):
 
     def open_json_editor(self):
         """打开JSON编辑器"""
-        from ui.pages.functions.json_editor import JsonEditorWindow
-        from config import POSTS_DIR
+        from tiebashelf.ui.pages.widgets.json_editor import JsonEditorWindow
+        from tiebashelf.config import POSTS_DIR
         json_path = Path(self.file_path) if Path(self.file_path).is_absolute() else POSTS_DIR / Path(self.file_path).name
         if not json_path.exists():
             QMessageBox.warning(self, "提示", f"找不到帖子JSON文件:\n{json_path}")
@@ -349,7 +349,7 @@ class TagEditDialog(QDialog):
         self.tag_chips = []
 
         self.setWindowTitle(f"管理标签 ➤ {display_name}")
-        self.setMinimumWidth(420)
+        self.setMinimumWidth(500)
         self.setModal(True)
 
         layout = QVBoxLayout(self)
@@ -536,7 +536,7 @@ class TagEditDialog(QDialog):
         return list(self.current_tags), list(self.prefer_labels)
 
     def keyPressEvent(self, event):
-        if event.key() in (Qt.Key_Return, Qt.Key_Enter):
+        if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
             focus = QApplication.focusWidget()
             if focus is self.tag_input:
                 self._add_tag()
@@ -645,7 +645,7 @@ class PageManage(QWidget):
         # 中部：帖子列表
         self.list_widget = QListWidget()
         self.list_widget.setObjectName('postsList')
-        self.list_widget.setSelectionMode(QAbstractItemView.NoSelection)
+        self.list_widget.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         layout.addWidget(self.list_widget)
 
         # 底部：批量操作按钮（初始隐藏）
@@ -678,6 +678,8 @@ class PageManage(QWidget):
 
     def load_posts(self):
         """加载/刷新所有索引中的帖子"""
+        if self.main_window:
+            self.main_window._index_needs_refresh = False
         try:
             # 清除现有项
             self.list_widget.clear()
@@ -743,7 +745,7 @@ class PageManage(QWidget):
 
         for i in range(self.list_widget.count()):
             item = self.list_widget.item(i)
-            widget = self.list_widget.itemWidget(item)
+            widget: ManageItemWidget = self.list_widget.itemWidget(item) # type: ignore
 
             # 类型过滤
             type_match = True
@@ -798,7 +800,6 @@ class PageManage(QWidget):
         # 打开文件
         self.viewer_window.open_markdown(md_path, display_name)
             
-        
         # 显示并激活窗口
         self.viewer_window.show()
         self.viewer_window.activateWindow()
@@ -806,8 +807,10 @@ class PageManage(QWidget):
 
     def on_page_switched(self, page_index: int):
         """主窗口切换页面时触发：切到管理页（索引1）则刷新"""
-        if page_index == 1:  # 管理页是第二个（索引1）
-            self.load_posts()
+        if page_index == 1:
+            if self.main_window and self.main_window._index_needs_refresh:
+                self.load_posts()
+                self.main_window._index_needs_refresh = False
 
     @Slot(bool)
     def toggle_batch_mode(self, enabled: bool):
@@ -816,18 +819,18 @@ class PageManage(QWidget):
         self.batch_button_bar.setVisible(enabled)
         # 根据批量模式状态显示/隐藏刷新按钮
         self.refresh_btn.setVisible(not enabled)
-        
+        self.batch_toggle_switch.setChecked(enabled)
+
         # 更新所有widget的批量模式状态
         for widget in self.items.values():
             widget.set_batch_mode(enabled)
-        
+
         # 如果退出批量模式，清空选中状态
         if not enabled:
             self.clear_selection()  # 只在退出批量模式时清空选择
         else:
             # 进入批量模式时不要清空选择
             self.update_batch_button_state()
-            pass
 
     def on_item_selected(self, post_key: str, checked: bool):
         """处理单个项目的选中状态变化"""
@@ -1213,7 +1216,6 @@ class PageManage(QWidget):
             f"处理完成！\n成功: {success_count}\n失败: {error_count}\n跳过: {skip_count}"
         )
         self.cleanup_after_task()
-        self.load_posts()
 
     def on_task_error(self, error_msg):
         """异步任务错误回调"""

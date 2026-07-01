@@ -8,14 +8,14 @@ from typing import List, Dict, Optional, Tuple
 
 from rs_aiotieba import Post, Posts, get_posts
 
-from config import POSTS_DIR, IMAGES_DIR
-from logger import logger
-from spider.type_models import PostData, FloorData, PostIndex
-from spider.index_manage import IndexManager
-from spider.image_link import TiebaImageDownloader
-from spider.utils import extract_posts_id, get_safe_filename, post_subdir_name
-from markdown_builder import convert_post_json_to_markdown
-import spider.exceptions as ex
+from tiebashelf.config import POSTS_DIR, IMAGES_DIR
+from tiebashelf.logger import logger
+from tiebashelf.spider.type_models import PostData, FloorData, PostIndex
+from tiebashelf.spider.index_manage import IndexManager
+from tiebashelf.spider.image_link import TiebaImageDownloader
+from tiebashelf.spider.utils import extract_posts_id, get_safe_filename, post_subdir_name
+from tiebashelf.markdown_builder import convert_post_json_to_markdown
+import tiebashelf.spider.exceptions as ex
 
 
 def timestamp_to_datetime(timestamp: int, format_str: str = "%Y-%m-%d %H:%M") -> str:

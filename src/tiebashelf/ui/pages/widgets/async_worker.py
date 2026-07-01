@@ -1,8 +1,8 @@
 import asyncio
 from PySide6.QtCore import Signal, QObject
-from logger import logger
-from spider.re_spider import TiebaShelf
-from spider import exceptions as ex
+from tiebashelf.logger import logger
+from tiebashelf.spider.re_spider import TiebaShelf
+from tiebashelf.spider import exceptions as ex
 
 
 class AsyncWorker(QObject):

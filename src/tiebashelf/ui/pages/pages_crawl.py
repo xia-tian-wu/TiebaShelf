@@ -5,14 +5,16 @@ from PySide6.QtWidgets import (
     QCheckBox, QLabel, QMessageBox, QFrame, QDialog, QProgressBar
 )
 from PySide6.QtCore import QThread, Signal, QObject, QTimer
-from ui.pages.functions.toggle_switch import ToggleSwitch
+from tiebashelf.ui.pages.widgets.toggle_switch import ToggleSwitch
 
-from spider.utils import normalize_url
-from spider.index_manage import IndexManager
-from ui.pages.functions.async_worker import AsyncWorker
+from tiebashelf.spider.utils import normalize_url
+from tiebashelf.spider.index_manage import IndexManager
+from tiebashelf.ui.pages.widgets.async_worker import AsyncWorker
 
 # ===================== 核心界面类 =====================
 class PageCrawl(QWidget):
+    """爬取功能页面，提供帖子 URL 批量输入、校验、去重和异步爬取"""
+
     def __init__(self, spider_instance=None, main_window=None):
         super().__init__()
         self.main_window = main_window
@@ -20,7 +22,7 @@ class PageCrawl(QWidget):
         self.worker_thread = None      # 统一管理工作线程，避免多线程混乱
         self.worker = None             # 统一管理工作实例
         self.index_manager = IndexManager()
-        self.progress_mgr = main_window.global_progress_mgr # 引用全局管理器
+        self.progress_mgr = main_window.global_progress_mgr if main_window else None # 引用全局管理器
         self.is_task_running = False  # 全局任务锁
         self._cleanup_done = False    # 防止重复清理
         self.init_ui()
@@ -82,7 +84,7 @@ class PageCrawl(QWidget):
 
         # --- 分隔线 ---
         line = QFrame()
-        line.setFrameShape(QFrame.HLine)
+        line.setFrameShape(QFrame.Shape.HLine)
         layout.addWidget(line)
 
         # --- 底部说明 ---
@@ -138,7 +140,15 @@ class PageCrawl(QWidget):
             QMessageBox.critical(self, "错误", f"发生错误：{str(e)}\n\n详细信息：\n{error_detail}")
 
     def normalize_and_filter_urls(self, raw_urls, see_lz):
-        """URL 归一化 + 无效链接过滤"""
+        """URL 归一化 + 无效链接过滤
+
+        Args:
+            raw_urls: 原始 URL 列表
+            see_lz: 是否只看楼主
+
+        Returns:
+            (有效 URL 列表, 无效 URL 列表)
+        """
         normalized_urls = []
         invalid_urls = []
         for url in raw_urls:
@@ -157,7 +167,15 @@ class PageCrawl(QWidget):
         QMessageBox.warning(self, "无效链接", f"以下链接格式不正确：\n{invalid_str}")
 
     def check_duplicate_urls(self, normalized_urls, see_lz):
-        """重复链接检测"""
+        """与索引对比检测重复链接
+
+        Args:
+            normalized_urls: 已归一化的 URL 列表
+            see_lz: 是否只看楼主
+
+        Returns:
+            (新 URL 列表, 重复 URL 列表)
+        """
         unique_urls = []
         duplicate_urls = []
         for url in normalized_urls:
@@ -169,9 +187,15 @@ class PageCrawl(QWidget):
         return list(set(unique_urls)), list(set(duplicate_urls))
 
     def handle_duplicate_urls(self, duplicate_urls, unique_urls):
+        """弹出重复链接处理对话框，让用户选择跳过或更新
+
+        Args:
+            duplicate_urls: 已存在的重复链接列表
+            unique_urls: 新发现的链接列表
+        """
         dialog = DuplicateHandlingDialog(duplicate_urls, len(unique_urls), self)
-        if dialog.exec() == QDialog.Accepted:
-            user_choice = dialog.result
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            user_choice = dialog._user_choice
             try:
                 if user_choice == "skip":
                     if not unique_urls:
@@ -266,7 +290,10 @@ class PageCrawl(QWidget):
         self.is_task_running = False
         if self.progress_mgr:
             self.progress_mgr.finish_all()
-        
+
+        if success_count > 0 and self.main_window and hasattr(self.main_window, '_refresh_manage_page'):
+            self.main_window._refresh_manage_page()
+
         # 显示对话框
         QMessageBox.information(
             self, "完成",
@@ -274,7 +301,11 @@ class PageCrawl(QWidget):
         )
 
     def on_crawl_error(self, error_msg):
-        """错误回调"""
+        """异步任务出错回调：恢复 UI 并显示错误对话框
+
+        Args:
+            error_msg: 错误信息
+        """
         # 1. 恢复 UI
         self.start_button.setEnabled(True)
         self.test_button.setEnabled(True)
@@ -361,7 +392,14 @@ class PageCrawl(QWidget):
         )
 
     def is_valid_tieba_url(self, url: str) -> bool:
-        """校验贴吧帖子 URL 格式"""
+        """校验贴吧帖子 URL 格式
+
+        Args:
+            url: 待校验的 URL
+
+        Returns:
+            True 为有效贴吧链接
+        """
         pattern = r'^https://tieba\.baidu\.com/p/\d+(?:\?.*)?$'
         return bool(re.match(pattern, url.strip()))
 
@@ -371,13 +409,18 @@ class DuplicateHandlingDialog(QDialog):
     """自定义重复链接处理对话框"""
     def __init__(self, duplicate_urls, unique_count, parent=None):
         super().__init__(parent)
-        self.result = None
+        self._user_choice: str | None = None
         self.setWindowTitle("重复链接处理")
         self.setModal(True)
         self.init_ui(duplicate_urls, unique_count)
 
     def init_ui(self, duplicate_urls, unique_count):
-        layout = QVBoxLayout()
+        """初始化对话框布局
+
+        Args:
+            duplicate_urls: 重复链接列表
+            unique_count: 新链接数量
+        """
 
         urls_text = '\n'.join(duplicate_urls[:5]) if len(duplicate_urls) <= 5 else \
             '\n'.join(duplicate_urls[:5]) + f"\n... 还有 {len(duplicate_urls) - 5} 个"
@@ -390,7 +433,7 @@ class DuplicateHandlingDialog(QDialog):
         layout.addWidget(label)
 
         line = QFrame()
-        line.setFrameShape(QFrame.HLine)
+        line.setFrameShape(QFrame.Shape.HLine)
         layout.addWidget(line)
 
         button_layout = QHBoxLayout()
@@ -410,9 +453,11 @@ class DuplicateHandlingDialog(QDialog):
         self.setLayout(layout)
 
     def on_skip(self):
-        self.result = "skip"
+        """用户选择跳过重复链接"""
+        self._user_choice = "skip"
         self.accept()
 
     def on_update(self):
-        self.result = "update"
+        """用户选择重新爬取更新重复链接"""
+        self._user_choice = "update"
         self.accept()

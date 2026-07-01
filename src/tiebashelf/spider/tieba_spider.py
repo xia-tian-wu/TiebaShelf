@@ -1,10 +1,13 @@
+# 此文件已废弃，仅作为某种留念，或许有一天还是需要老版本贴吧的元素布局做点什么的
+# 具体的信息获取逻辑已迁移至 scr/tiebashelf/spider/re_spider.py
+
 import sys
 import os
 import shutil
 from pathlib import Path
 
 # 项目核心常量/路径
-from config import (
+from tiebashelf.config import (
     POSTS_DIR, 
     IMAGES_DIR, 
     TIMEOUT, 
@@ -12,7 +15,7 @@ from config import (
 )
 
 from typing import Optional, List, Dict, Tuple
-from spider.type_models import PostData, FloorData, PostIndex 
+from tiebashelf.spider.type_models import PostData, FloorData, PostIndex 
 
 # 网络/异步（爬虫核心IO）
 import asyncio
@@ -30,11 +33,11 @@ import time
 
 # 项目内部模块
 from .utils import normalize_url, extract_posts_id, append_pn_param, get_headers, get_safe_filename, get_display_name
-from markdown_builder import convert_post_json_to_markdown
-from spider.index_manage import IndexManager
-import spider.exceptions as ex
+from tiebashelf.markdown_builder import convert_post_json_to_markdown
+from tiebashelf.spider.index_manage import IndexManager
+import tiebashelf.spider.exceptions as ex
 
-from logger import logger
+from tiebashelf.logger import logger
 
 class TiebaShelf:
     # =============== 初始化与基础配置 ===============

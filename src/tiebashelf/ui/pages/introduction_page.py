@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QTextBrowser, QVBoxLayout, QWidget
-from config import SOURCE_PATH
+from tiebashelf.config import PACKAGE_DIR
 
 class PageFuture(QWidget):
     def __init__(self):
@@ -38,6 +38,6 @@ class PageFuture(QWidget):
         layout.addWidget(browser)
     
     def _load_html_content(self) -> str:
-        html_path = SOURCE_PATH / 'ui' / 'pages' / 'introduction.html'
+        html_path = PACKAGE_DIR / 'ui' / 'pages' / 'introduction.html'
         with open(html_path, 'r', encoding='utf-8') as f:
             return f.read()

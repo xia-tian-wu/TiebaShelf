@@ -498,10 +498,39 @@ document.addEventListener('DOMContentLoaded', () => {{
     }};
 
     document.addEventListener('keydown', (e) => {{
+        // 灯箱打开时只处理灯箱快捷键
         if (lightbox.classList.contains('active')) {{
             if (e.key === "Escape") closeLightbox();
             if (e.key === "ArrowRight") showImage(currentIndex + 1);
             if (e.key === "ArrowLeft") showImage(currentIndex - 1);
+            return;
+        }}
+
+        // 在输入框中打字时不触发页面快捷键
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+        switch (e.key) {{
+            case 'd':
+            case 'D':  // D 切换日夜模式
+                themeToggle.click();
+                e.preventDefault();
+                break;
+            case 's':
+            case 'S':  // S 展开搜索框
+                searchWidget.classList.add('expanded');
+                searchInput.focus();
+                e.preventDefault();
+                break;
+            case 'a':
+            case 'A':  // A 聚焦楼层跳转输入框
+                if (jumpInput) jumpInput.focus();
+                e.preventDefault();
+                break;
+            case 'Escape':  // Escape 收起搜索框
+                searchWidget.classList.remove('expanded');
+                clearSearch();
+                e.preventDefault();
+                break;
         }}
     }});
 

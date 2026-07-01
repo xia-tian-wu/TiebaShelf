@@ -32,7 +32,7 @@ class QTextEditLogHandler(logging.Handler, QObject):
         self.text_edit.append(msg)
         # 自动滚动到最新日志行
         cursor = self.text_edit.textCursor()
-        cursor.movePosition(QTextCursor.End)
+        cursor.movePosition(QTextCursor.MoveOperation.End)
         self.text_edit.setTextCursor(cursor)
 
 def setup_logger(name: str = "tieba_spider", level=logging.INFO) -> logging.Logger:
@@ -63,9 +63,13 @@ def setup_logger(name: str = "tieba_spider", level=logging.INFO) -> logging.Logg
 def add_ui_handler(text_edit: QTextEdit, level=logging.INFO):
     """
     给全局logger绑定UI日志输出
-    :param text_edit: 日志显示的QTextEdit组件
-    :param level: 日志级别
-    :return: 新增的UI处理器（方便后续移除）
+
+    Args:
+        text_edit: 日志显示的QTextEdit组件
+        level: 日志级别
+
+    Returns:
+        新增的UI处理器（方便后续移除）
     """
     logger = logging.getLogger("tieba_spider")
     # 创建UI处理器

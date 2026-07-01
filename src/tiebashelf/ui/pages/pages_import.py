@@ -6,9 +6,9 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, QSize
 
-from logger import logger
-from spider.index_manage import IndexManager
-from importer import preview_export, get_post_integrity, import_selected
+from tiebashelf.logger import logger
+from tiebashelf.spider.index_manage import IndexManager
+from tiebashelf.importer import preview_export, get_post_integrity, import_selected
 
 
 class ImportItemWidget(QWidget):
@@ -116,7 +116,7 @@ class PageImport(QWidget):
 
         self.list_widget = QListWidget()
         self.list_widget.setObjectName('postsList')
-        self.list_widget.setSelectionMode(QAbstractItemView.NoSelection)
+        self.list_widget.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
         layout.addWidget(self.list_widget)
 
         bottom_bar = QWidget()
@@ -264,6 +264,9 @@ class PageImport(QWidget):
 
         msg = f"导入完成！成功: {success}, 跳过: {skipped}, 失败: {failed}"
         QMessageBox.information(self, "导入完成", msg)
+
+        if success > 0 and self.main_window and hasattr(self.main_window, '_refresh_manage_page'):
+            self.main_window._refresh_manage_page()
 
         self.reset_state()
 

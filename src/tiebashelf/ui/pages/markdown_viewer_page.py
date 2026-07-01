@@ -2,8 +2,8 @@ from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QPushButton
 from PySide6.QtCore import Slot, Qt
 from PySide6.QtGui import QIcon
 from pathlib import Path
-from ui.pages.functions.markdown_viewer import MarkdownViewer
-from config import SOURCE_PATH
+from tiebashelf.ui.pages.widgets.markdown_viewer import MarkdownViewer
+from tiebashelf.config import PACKAGE_DIR
 
 class MarkdownViewerWindow(QMainWindow):
     """Markdown 阅读器窗口 - 独立窗口，支持多标签页管理"""
@@ -14,7 +14,7 @@ class MarkdownViewerWindow(QMainWindow):
         self.resize(1200, 800)
         self.viewers = {}  # tab_id -> MarkdownViewer
         
-        icon_path = SOURCE_PATH / 'ui' / 'momo.ico'
+        icon_path = PACKAGE_DIR / 'ui' / 'momo.ico'
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
             
