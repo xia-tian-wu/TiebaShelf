@@ -117,7 +117,7 @@ def export_posts(post_keys: List[str], export_root: str | Path, index_manager: I
     export_data = {
         "export_version": "1.0",
         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "tool": "TiebaShelf v2.7",
+        "tool": "TiebaShelf v2.8",
         "total_posts": len(export_list),
         "posts": export_list,
     }

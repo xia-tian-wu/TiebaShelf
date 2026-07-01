@@ -31,7 +31,7 @@ class TagChipButton(QWidget):
         total_w = 10 + text_w + 4 + self.DEL_WIDTH
         return QSize(total_w, 24)
 
-    # ── 事件 ──
+    # === 事件 ===
 
     def _right_area_x(self) -> int:
         return self.width() - self.DEL_WIDTH
@@ -62,7 +62,7 @@ class TagChipButton(QWidget):
         self._hover_right = False
         self.update()
 
-    # ── 绘制 ──
+    # === 绘制 ===
 
     def paintEvent(self, event):
         painter = QPainter(self)

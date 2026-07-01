@@ -10,7 +10,7 @@ from tiebashelf.spider.type_models import FloorData
 from tiebashelf.logger import logger
 from tiebashelf.spider.utils import get_headers
 
-# ===================== 配置常量 =====================
+# === 配置常量 ===
 MAX_DOWNLOAD_CONCURRENCY = 12
 HTTP_TIMEOUT = 30
 RETRY_MAX_ATTEMPTS = 3
@@ -40,7 +40,7 @@ class TiebaImageDownloader:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.close()
 
-    # ===================== 正则提取 waterurl =====================
+    # === 正则提取 waterurl ===
     @retry(
         stop=stop_after_attempt(RETRY_MAX_ATTEMPTS),
         wait=wait_exponential(multiplier=1, min=RETRY_WAIT_MIN, max=RETRY_WAIT_MAX),
@@ -61,21 +61,21 @@ class TiebaImageDownloader:
         
         html_text = resp.text
         
-        # ========== 优先级 1: tiebapic.baidu.com (带参数的高清图) ==========
+        # === 优先级 1: tiebapic.baidu.com (带参数的高清图) ===
         pattern1 = re.compile(r'"waterurl"\s*:\s*"(https://tiebapic\.baidu\.com[^"]+)"')
         match = pattern1.search(html_text)
         if match:
             url = match.group(1).replace("\\/", "/")
             return url
         
-        # ========== 优先级 2: imgsa.baidu.com/forum/pic/item/ (纯净jpg) ==========
+        # === 优先级 2: imgsa.baidu.com/forum/pic/item/ (纯净jpg) ===
         pattern2 = re.compile(r'"waterurl"\s*:\s*"(https://imgsa\.baidu\.com/forum/pic/item/[^"]+\.jpg[^"]*)"')
         match = pattern2.search(html_text)
         if match:
             url = match.group(1).replace("\\/", "/")
             return url
         
-        # ========== 优先级 3: 通用 https:// 开头 (兜底方案) ==========
+        # === 优先级 3: 通用 https:// 开头 (兜底方案) ===
         pattern3 = re.compile(r'"waterurl"\s*:\s*"(https://[^"]+)"')
         match = pattern3.search(html_text)
         if match:
@@ -84,10 +84,10 @@ class TiebaImageDownloader:
             if not any(kw in url.lower() for kw in ['blank', 'error', '404', 'default']):
                 return url
         
-        # ========== 全部匹配失败 ==========
+        # === 全部匹配失败 ===
         return None
 
-    # ===================== 核心：下载图片文件 =====================
+    # === 核心：下载图片文件 ===
     @retry(
         stop=stop_after_attempt(RETRY_MAX_ATTEMPTS),
         wait=wait_exponential(multiplier=1, min=RETRY_WAIT_MIN, max=RETRY_WAIT_MAX),
@@ -120,7 +120,7 @@ class TiebaImageDownloader:
                     pass
             raise e
 
-    # ===================== 对外：单张图片下载 =====================
+    # === 对外：单张图片下载 ===
     async def download_single_image(
         self,
         preview_url: str,
@@ -168,7 +168,7 @@ class TiebaImageDownloader:
             logger.warning(f"图片下载失败，URL={preview_url}，错误：{str(e)}")
             return None
 
-    # ===================== 对外：批量下载+自动回填 =====================
+    # === 对外：批量下载+自动回填 ===
     async def download_and_backfill(
         self,
         new_floors: List[FloorData],

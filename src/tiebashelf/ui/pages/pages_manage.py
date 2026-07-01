@@ -355,7 +355,7 @@ class TagEditDialog(QDialog):
         layout = QVBoxLayout(self)
         layout.setSpacing(6)
 
-        # ── 帖子标签 ──
+        # === 帖子标签 ===
         layout.addWidget(QLabel("帖子标签（最多4个字符，上限3个）："))
         self.tag_container = QWidget()
         self.tag_layout = QHBoxLayout(self.tag_container)
@@ -376,7 +376,7 @@ class TagEditDialog(QDialog):
         add_row.addWidget(self.add_btn)
         layout.addLayout(add_row)
 
-        # ── 偏好标签（独立于帖子标签）──
+        # === 偏好标签（独立于帖子标签）===
         layout.addSpacing(10)
         layout.addWidget(QLabel("偏好标签（点击左侧复制到帖子标签，上限6个）："))
         self.prefer_container = QWidget()
@@ -398,14 +398,14 @@ class TagEditDialog(QDialog):
         prefer_add_row.addWidget(self.prefer_add_btn)
         layout.addLayout(prefer_add_row)
 
-        # ── 按钮 ──
+        # === 按钮 ===
         layout.addSpacing(12)
         btn_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         btn_box.accepted.connect(self.accept)
         btn_box.rejected.connect(self.reject)
         layout.addWidget(btn_box)
 
-    # ── 帖子标签 chips ──
+    # === 帖子标签 chips ===
 
     def _rebuild_tag_chips(self):
         while self.tag_layout.count():
@@ -460,7 +460,7 @@ class TagEditDialog(QDialog):
             self.current_tags.remove(tag)
             self._rebuild_tag_chips()
 
-    # ── 偏好标签 chips ──
+    # === 偏好标签 chips ===
 
     def _rebuild_prefer_chips(self):
         while self.prefer_layout.count():
@@ -950,7 +950,7 @@ class PageManage(QWidget):
         self.is_task_running = False
 
 
-    # ========== 单个操作 ==========
+    # === 单个操作 ===
     def handle_single_post(self, post_key: str, task_type: str):
         """处理单个帖子的增量更新或重新爬取"""
         if self.is_task_running:
@@ -1033,7 +1033,7 @@ class PageManage(QWidget):
             self.enable_all_controls()
             self.is_task_running = False
 
-    # ========== 批量操作 ==========
+    # === 批量操作 ===
     def handle_batch(self, task_type: str):
         """批量增量更新"""
         if self.is_task_running:
@@ -1166,16 +1166,16 @@ class PageManage(QWidget):
         if total == 0:
             return
 
-        # ===== 启动进度管理 =====
+        # === 启动进度管理 ===
         self.is_task_running = True
         self.progress_mgr.start_task(total_items=total, current_page=self)  # 只需总数！
 
-        # ===== 创建线程 =====
+        # === 创建线程 ===
         self.worker_thread = QThread()
         self.worker = AsyncWorker([], update_urls, recrawl_urls)
         self.worker.moveToThread(self.worker_thread)
 
-        # ===== 连接信号 =====
+        # === 连接信号 ===
         self.worker_thread.started.connect(self.worker.run_async_task)
         self.worker.finished.connect(self.on_task_finished)
         self.worker.error.connect(self.on_task_error)

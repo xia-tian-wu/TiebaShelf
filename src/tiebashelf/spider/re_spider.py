@@ -47,7 +47,7 @@ class TiebaShelf:
         self._fetch_semaphore = asyncio.Semaphore(4)
         self._download_semaphore = asyncio.Semaphore(3)
 
-    # =============== 工具方法 ===============
+    # === 工具方法 ===
 
     def build_url_prefix(self, bar_name: str, tid: int) -> str:
         """构建贴吧图片 URL 前缀"""
@@ -125,7 +125,7 @@ class TiebaShelf:
         """检查 Posts 对象是否为有效的帖子页面"""
         return posts.status == "ok"
 
-    # =============== 核心爬取逻辑 ===============
+    # === 核心爬取逻辑 ===
 
     async def crawl_full_post(self, url: str, see_lz: bool = False, force_recrawl: bool = False) -> Optional[PostData]:
         """
@@ -173,7 +173,7 @@ class TiebaShelf:
                 history_max_floor = history_post_data.get('max_floor_number', 0)
                 start_pn = max(1, history_post_data.get('total_pages', 1))
 
-            # ========== 检测图片目录变更（支持软件迁移） ==========
+            # === 检测图片目录变更（支持软件迁移） ===
             recorded_images_dir = history_post_data.get('images_dir', '')
             present_images_dir = self.get_image_path(current_see_lz, tid)
             if recorded_images_dir and recorded_images_dir != present_images_dir:
@@ -380,7 +380,7 @@ class TiebaShelf:
 
         return formatted_results
 
-    # =============== 数据持久化 ===============
+    # === 数据持久化 ===
 
     def _save_post_data(self, post_data: PostData) -> None:
         """

@@ -11,7 +11,7 @@ from tiebashelf.spider.utils import normalize_url
 from tiebashelf.spider.index_manage import IndexManager
 from tiebashelf.ui.pages.widgets.async_worker import AsyncWorker
 
-# ===================== 核心界面类 =====================
+# === 核心界面类 ===
 class PageCrawl(QWidget):
     """爬取功能页面，提供帖子 URL 批量输入、校验、去重和异步爬取"""
 
@@ -31,12 +31,12 @@ class PageCrawl(QWidget):
         """初始化 UI 布局，纯可视化逻辑，无业务侵入"""
         layout = QVBoxLayout()
 
-        # --- 标题 ---
+        # === 标题 ===
         title = QLabel("【爬取功能区】")
         title.setStyleSheet("font-weight: bold; font-size: 14px;color: #333333;")
         layout.addWidget(title)
 
-        # --- URL 输入框（多行） ---
+        # === URL 输入框（多行） ===
         self.url_input = QTextEdit()
         self.url_input.setPlaceholderText(
             "请输入贴吧帖子链接，每行一个，支持批量输入：\n"
@@ -46,7 +46,7 @@ class PageCrawl(QWidget):
         self.url_input.setReadOnly(False)
         layout.addWidget(self.url_input)
 
-        # --- 选项行：只看楼主 ---
+        # === 选项行：只看楼主 ===
         options_layout = QHBoxLayout()
         self.see_lz_switch = ToggleSwitch()
         lz_label = QLabel("只看楼主")
@@ -62,7 +62,7 @@ class PageCrawl(QWidget):
         options_layout.addStretch()
         layout.addLayout(options_layout)
 
-        # --- 按钮行 ---
+        # === 按钮行 ===
         button_layout = QHBoxLayout()
         self.start_button = QPushButton("开始爬取")
         self.clear_button = QPushButton("清空输入")
@@ -77,17 +77,17 @@ class PageCrawl(QWidget):
         button_layout.addWidget(self.test_button)
         layout.addLayout(button_layout)
 
-        # --- 状态显示 ---
+        # === 状态显示 ===
         self.status_label = QLabel("时刻准备着...")
         self.status_label.setStyleSheet("color: gray; font-size: 12px;")
         layout.addWidget(self.status_label)
 
-        # --- 分隔线 ---
+        # === 分隔线 ===
         line = QFrame()
         line.setFrameShape(QFrame.Shape.HLine)
         layout.addWidget(line)
 
-        # --- 底部说明 ---
+        # === 底部说明 ===
         hint = QLabel("提示：支持批量粘贴 URL，一行一个，自动过滤重复和无效链接，暂不支持爬取楼中楼回复")
         hint.setStyleSheet("color: #666; font-size: 11px;")
         layout.addWidget(hint)
@@ -95,7 +95,7 @@ class PageCrawl(QWidget):
         layout.addStretch()
         self.setLayout(layout)
 
-    # ===================== 核心业务逻辑 =====================
+    # === 核心业务逻辑 ===
     def start_crawl(self):
         """开始爬取主入口：URL 校验→归一化→去重→用户选择→任务执行"""
         try:
@@ -212,7 +212,7 @@ class PageCrawl(QWidget):
                 error_detail = traceback.format_exc()
                 QMessageBox.critical(self, "报错详情", f"错误类型：{type(e).__name__}\n错误信息：{str(e)}\n\n完整栈：\n{error_detail}")
 
-    # ===================== 异步任务管理 =====================
+    # === 异步任务管理 ===
     def start_async_crawl(self, new_urls=None, update_urls=None):
         """启动异步任务"""
         try:
@@ -234,16 +234,16 @@ class PageCrawl(QWidget):
             if total == 0:
                 return
 
-            # ===== 启动进度管理 =====
+            # === 启动进度管理 ===
             self.is_task_running = True
             self.progress_mgr.start_task(total_items=total, current_page=self)
 
-            # ===== 创建线程 =====
+            # === 创建线程 ===
             self.worker_thread = QThread()
             self.worker = AsyncWorker(new_urls, update_urls)
             self.worker.moveToThread(self.worker_thread)
 
-            # ===== 连接信号 =====
+            # === 连接信号 ===
             self.worker_thread.started.connect(self.worker.run_async_task)
             self.worker.finished.connect(self.on_crawl_finished)
             self.worker.error.connect(self.on_crawl_error)
@@ -259,7 +259,7 @@ class PageCrawl(QWidget):
             error_detail = traceback.format_exc()
             QMessageBox.critical(self, "错误", f"启动爬取任务失败：{str(e)}\n\n详细信息：\n{error_detail}")
 
-    # ===================== 回调函数 =====================
+    # === 回调函数 ===
     def on_crawl_finished(self, results):
         """任务完成回调：先恢复 UI，再延迟显示对话框"""
         # 1. 先恢复 UI 控件状态
@@ -344,7 +344,7 @@ class PageCrawl(QWidget):
         """进度更新回调"""
         self.status_label.setText(message)
 
-    # ===================== 基础 UI 功能 =====================
+    # === 基础 UI 功能 ===
     def clear_input(self):
         """清空输入框"""
         self.url_input.clear()
@@ -404,7 +404,7 @@ class PageCrawl(QWidget):
         return bool(re.match(pattern, url.strip()))
 
 
-# ===================== 辅助类：重复链接对话框 =====================
+# === 辅助类：重复链接对话框 ===
 class DuplicateHandlingDialog(QDialog):
     """自定义重复链接处理对话框"""
     def __init__(self, duplicate_urls, unique_count, parent=None):

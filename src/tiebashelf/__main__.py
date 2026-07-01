@@ -24,7 +24,7 @@ class MainWindow(QMainWindow):
     def __init__(self, app_instance: QApplication):
         super().__init__()
         cleanup_stale_temp_html()
-        self.setWindowTitle("TiebaShelf v2.7")
+        self.setWindowTitle("TiebaShelf v2.8")
 
         self.setMinimumSize(1000, 600)
         icon_path = PACKAGE_DIR / 'ui' /'momo.ico'
@@ -38,14 +38,14 @@ class MainWindow(QMainWindow):
         palette.setColor(QPalette.ColorRole.WindowText, QColor("#343A40"))
         app_instance.setPalette(palette)
 
-        # --- 左侧：书签式导航 ---
+        # === 左侧：书签式导航 ===
         self.nav_list = QListWidget()
         self.nav_list.setObjectName("navigationList")
         self.nav_list.addItems(["爬取", "管理", "导入", "项目介绍"])
         self.nav_list.setFixedWidth(100)
         self.nav_list.currentRowChanged.connect(self.switch_page)
 
-        # --- 中间：功能页面堆栈 ---
+        # === 中间：功能页面堆栈 ===
         self.stacked_widget = QStackedWidget()
         self.global_status_label = QLabel("就绪")
         self.global_status_label.setStyleSheet("color: gray; font-size: 12px;")
@@ -79,7 +79,7 @@ class MainWindow(QMainWindow):
         self.middle_layout.addWidget(self.global_status_label)
         self.middle_layout.addWidget(self.global_progress_bar)
 
-        # --- 右侧：日志区域 ---
+        # === 右侧：日志区域 ===
         self.log_area = QTextEdit()
         self.log_area.setReadOnly(True)
         self.log_area.setFixedWidth(160)
@@ -117,7 +117,7 @@ class MainWindow(QMainWindow):
         clear_log_btn.clicked.connect(self.clear_log)
         log_layout.addWidget(clear_log_btn, alignment=Qt.AlignmentFlag.AlignRight)
 
-        # --- 整体水平布局 ---
+        # === 整体水平布局 ===
         main_layout = QHBoxLayout()
         main_layout.addWidget(self.nav_list)
         main_layout.addWidget(self.middle_container)
@@ -169,9 +169,7 @@ class MainWindow(QMainWindow):
         self.log_area.append(msg)
 
 
-# ======================
-# 启动应用
-# ======================
+# === 启动应用 ===
 
 def main():
     shared_mem = QSharedMemory("TiebaShelf_SingleInstance")

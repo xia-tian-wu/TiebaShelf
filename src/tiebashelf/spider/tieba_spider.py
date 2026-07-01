@@ -40,7 +40,7 @@ import tiebashelf.spider.exceptions as ex
 from tiebashelf.logger import logger
 
 class TiebaShelf:
-    # =============== 初始化与基础配置 ===============
+    # === 初始化与基础配置 ===
     def __init__(self, client: None | httpx.AsyncClient = None) -> None:
         """初始化爬虫对象"""
         self.client = client 
@@ -67,7 +67,7 @@ class TiebaShelf:
                 
         self.index_manager = None
                 
-    # =============== 异步网络请求（核心IO） ===============
+    # === 异步网络请求（核心IO） ===
 
     async def _initialize_client(self):
         """确保全局只有一个初始化任务在执行，且执行完毕后才释放"""
@@ -198,7 +198,7 @@ class TiebaShelf:
             delay = base
         return max(self.delay_config['min_delay'], min(delay, self.delay_config['max_delay']))
 
-    # =============== 页面解析（纯同步/数据提取） ===============
+    # === 页面解析（纯同步/数据提取） ===
 
     def get_max_page(self, soup: BeautifulSoup) -> int:
         """
@@ -412,7 +412,7 @@ class TiebaShelf:
             floor for floor in current_floors
             if floor['floor_number'] > history_max_floor]
 
-    # =============== 核心爬取逻辑（完整/增量） ===============
+    # === 核心爬取逻辑（完整/增量） ===
     async def crawl_full_post(self, url: str, see_lz: bool = False) -> PostData | None:
         """
         异步抓取帖子的完整内容（全页数、全楼层），支持「只看楼主」模式。
@@ -879,7 +879,7 @@ class TiebaShelf:
         
         return updated_post_data
 
-    # =============== 图片处理（下载/去重/存储） ===============
+    # === 图片处理（下载/去重/存储） ===
     
     async def _download_images_concurrently(
         self,
@@ -1079,7 +1079,7 @@ class TiebaShelf:
                     return floor['local_images'][idx]
         return None
 
-    # =============== 工具方法（辅助/格式化/存储/删除） ===============
+    # === 工具方法（辅助/格式化/存储/删除） ===
         
     def save_post_data(self, post_data: PostData) -> None:
         """

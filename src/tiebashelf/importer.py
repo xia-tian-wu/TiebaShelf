@@ -135,7 +135,7 @@ def import_selected(
             dst_json = POSTS_DIR / json_filename
 
             if index_manager.post_exists(post_id, see_lz):
-                # --- 合并模式 ---
+                # === 合并模式 ===
                 if src_json.exists() and dst_json.exists():
                     with open(dst_json, 'r', encoding='utf-8') as f:
                         local_data = json.load(f)
@@ -165,7 +165,7 @@ def import_selected(
                     if dst_json.exists():
                         convert_post_json_to_markdown(dst_json, apply_patch=True)
             else:
-                # --- 新帖模式 ---
+                # === 新帖模式 ===
                 if src_json.exists():
                     shutil.copy2(src_json, dst_json)
 
