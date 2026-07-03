@@ -1,5 +1,5 @@
-from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QHBoxLayout, QPushButton, QTabWidget, QMessageBox, QWidget
-from PySide6.QtCore import Slot, Qt
+from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QTabWidget, QMessageBox, QWidget
+from PySide6.QtCore import Slot
 from PySide6.QtGui import QIcon
 from pathlib import Path
 from tiebashelf.ui.pages.widgets.markdown_viewer import MarkdownViewer

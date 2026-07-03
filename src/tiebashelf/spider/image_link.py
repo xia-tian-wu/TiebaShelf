@@ -1,10 +1,9 @@
-import os
 import re
 import asyncio
 import httpx
 from typing import List, Dict, Optional, Tuple
 from pathlib import Path
-from urllib.parse import quote, urlparse
+from urllib.parse import urlparse
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from tiebashelf.spider.type_models import FloorData
 from tiebashelf.logger import logger

@@ -1,8 +1,8 @@
 import sys
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
-    QListWidget, QStackedWidget, QTextEdit, QLabel, QFrame, QStatusBar,
-    QPushButton, QSizePolicy, QProgressBar, QSizePolicy, QMessageBox
+    QListWidget, QStackedWidget, QTextEdit, QLabel, QStatusBar,
+    QPushButton, QSizePolicy, QProgressBar, QMessageBox
 )
 from PySide6.QtCore import Qt, Signal, QSharedMemory
 from PySide6.QtGui import QPalette, QColor, QIcon
@@ -15,7 +15,7 @@ from tiebashelf.ui.pages.pages_manage import PageManage
 from tiebashelf.ui.pages.pages_import import PageImport
 from tiebashelf.ui.pages.introduction_page import PageFuture
 from tiebashelf.config import PACKAGE_DIR
-from tiebashelf.logger import setup_logger, add_ui_handler, remove_ui_handler, logger as global_logger
+from tiebashelf.logger import add_ui_handler, remove_ui_handler, logger as global_logger
 
 class MainWindow(QMainWindow):
     page_switched = Signal(int)

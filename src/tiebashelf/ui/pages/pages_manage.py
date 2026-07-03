@@ -3,12 +3,12 @@ import webbrowser
 from pathlib import Path
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
-    QLabel, QPushButton, QCheckBox, QFrame, QMessageBox, QSizePolicy,
+    QLabel, QPushButton, QCheckBox, QMessageBox, QSizePolicy,
     QAbstractItemView, QMenu, QApplication, QComboBox, QLineEdit,
-    QFileDialog, QDialog, QInputDialog, QDialogButtonBox
+    QFileDialog, QDialog, QDialogButtonBox
 )
 from PySide6.QtCore import Qt, Signal, QThread, Slot
-from PySide6.QtGui import QContextMenuEvent, QCursor, QAction, QGuiApplication, QMouseEvent
+from PySide6.QtGui import QAction, QGuiApplication, QMouseEvent
 from tiebashelf.spider.index_manage import IndexManager
 from tiebashelf.spider.utils import json_to_md_path
 from tiebashelf.exporter import export_posts

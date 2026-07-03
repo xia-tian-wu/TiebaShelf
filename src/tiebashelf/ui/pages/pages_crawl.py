@@ -2,9 +2,9 @@ import re
 import asyncio
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QTextEdit, QHBoxLayout, QPushButton,
-    QCheckBox, QLabel, QMessageBox, QFrame, QDialog, QProgressBar
+    QLabel, QMessageBox, QFrame, QDialog
 )
-from PySide6.QtCore import QThread, Signal, QObject, QTimer
+from PySide6.QtCore import QThread, QTimer
 from tiebashelf.ui.pages.widgets.toggle_switch import ToggleSwitch
 
 from tiebashelf.spider.utils import normalize_url

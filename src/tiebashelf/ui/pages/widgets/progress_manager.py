@@ -1,5 +1,3 @@
-from PySide6.QtWidgets import QProgressBar, QLabel
-from PySide6.QtCore import Qt
 
 class TaskProgressManager:
     def __init__(self, status_label, progress_bar):

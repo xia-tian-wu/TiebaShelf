@@ -580,9 +580,7 @@ class FloorEditWidget(QWidget):
         form_layout.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
         form_layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
 
-        label_style = "font-size: 13px; color: #444; font-weight: bold;"
-
-        author_label = QLabel(self.floor_data.get('author', '未知'))
+        author_label = QLabel(author)
         author_label.setStyleSheet("font-size: 13px; color: #666;")
         form_layout.addRow("作者", author_label)
 

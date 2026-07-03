@@ -131,7 +131,7 @@ class AsyncWorker(QObject):
             return {'url': url, 'status': 'error', 'error': f"解析错误：{e.message}"}
         except ex.PostNotFoundError as e:
             logger.error(f"【帖子不存在】{e.message} | URL: {e.url}")
-            self.error.emit(f"❌ 帖子不存在或已被删除")
+            self.error.emit("❌ 帖子不存在或已被删除")
             return {'url': url, 'status': 'error', 'error': f"帖子不存在：{e.message}"}
         except Exception as e:
             logger.error(f"【未知错误】{type(e).__name__}: {e}")
@@ -173,11 +173,11 @@ class AsyncWorker(QObject):
             return {'url': url, 'status': 'error', 'error': f"解析错误：{e.message}"}
         except ex.PostNotFoundError as e:
             logger.error(f"【帖子不存在】{e.message} | URL: {e.url}")
-            self.error.emit(f"❌ 帖子不存在或已被删除")
+            self.error.emit("❌ 帖子不存在或已被删除")
             return {'url': url, 'status': 'error', 'error': f"帖子不存在：{e.message}"}
         except ex.FileIndexError as e:
             logger.error(f"【文件错误】{e.message}")
-            self.error.emit(f"❌ 索引文件错误\n\n请重试或手动修复索引文件")
+            self.error.emit("❌ 索引文件错误\n\n请重试或手动修复索引文件")
             return {'url': url, 'status': 'error', 'error': f"文件错误：{e.message}"}
         except Exception as e:
             logger.error(f"【未知错误】{type(e).__name__}: {e}")

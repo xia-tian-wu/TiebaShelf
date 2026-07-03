@@ -4,9 +4,8 @@ from PySide6.QtWidgets import (
     QLabel, QPushButton, QCheckBox, QMessageBox, QSizePolicy,
     QAbstractItemView, QFileDialog
 )
-from PySide6.QtCore import Qt, QSize
+from PySide6.QtCore import QSize
 
-from tiebashelf.logger import logger
 from tiebashelf.spider.index_manage import IndexManager
 from tiebashelf.importer import preview_export, get_post_integrity, import_selected
 

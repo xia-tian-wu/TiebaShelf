@@ -1,7 +1,6 @@
 from itertools import takewhile
 from fake_useragent import UserAgent
 import re
-import os
 from pathlib import Path
 
 def normalize_url(url: str, see_lz: bool) -> str | None:
