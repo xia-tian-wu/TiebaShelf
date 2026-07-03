@@ -421,6 +421,7 @@ class DuplicateHandlingDialog(QDialog):
             duplicate_urls: 重复链接列表
             unique_count: 新链接数量
         """
+        layout = QVBoxLayout()
 
         urls_text = '\n'.join(duplicate_urls[:5]) if len(duplicate_urls) <= 5 else \
             '\n'.join(duplicate_urls[:5]) + f"\n... 还有 {len(duplicate_urls) - 5} 个"
