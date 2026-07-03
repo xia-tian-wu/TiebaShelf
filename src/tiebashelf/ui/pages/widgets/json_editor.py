@@ -264,6 +264,7 @@ class JsonEditorWindow(QMainWindow):
                     floor_data.update(self.floor_modifications[floor_num])
                 self.current_floor_widget = FloorEditWidget(floor_data, self.image_dir, self.patch_image_dir, self)
                 self.current_floor_widget.modification_changed.connect(self._on_floor_modified)
+                self.current_floor_widget.restore_requested.connect(self._on_restore_floor)
                 self.scroll.setWidget(self.current_floor_widget)
                 self.floor_widgets[floor_num] = self.current_floor_widget
                 break
@@ -307,6 +308,31 @@ class JsonEditorWindow(QMainWindow):
                 self.floor_modifications[fn] = self.current_floor_widget.get_modified_floor()
             except RuntimeError:
                 pass
+        self._update_hints()
+
+    def _on_restore_floor(self, floor_number: int):
+        """移除指定楼层的补丁，恢复原始内容并刷新编辑器。"""
+        # 从待修改记录中移除
+        self.floor_modifications.pop(floor_number, None)
+
+        # 恢复 post_data 中的楼层为原始内容
+        for i, floor in enumerate(self.post_data['floors']):
+            if floor['floor_number'] == floor_number:
+                self.post_data['floors'][i] = dict(self.original_floors[floor_number])
+                break
+
+        # 如果当前正在编辑该楼层，刷新编辑器
+        if (self.current_floor_widget
+                and self.current_floor_widget.floor_data.get('floor_number') == floor_number):
+            self.current_floor_widget.deleteLater()
+            floor_data = dict(self.original_floors[floor_number])
+            self.current_floor_widget = FloorEditWidget(
+                floor_data, self.image_dir, self.patch_image_dir, self)
+            self.current_floor_widget.modification_changed.connect(self._on_floor_modified)
+            self.current_floor_widget.restore_requested.connect(self._on_restore_floor)
+            self.scroll.setWidget(self.current_floor_widget)
+            self.floor_widgets[floor_number] = self.current_floor_widget
+
         self._update_hints()
 
     @staticmethod
@@ -540,6 +566,7 @@ class FloorEditWidget(QWidget):
     """单个楼层的编辑面板：内容编辑 + 图片管理。"""
 
     modification_changed = Signal()
+    restore_requested = Signal(int)
 
     def __init__(self, floor_data: dict, image_dir: Path, patch_image_dir: Path, parent=None):
         super().__init__(parent)
@@ -569,9 +596,32 @@ class FloorEditWidget(QWidget):
         if device:
             meta += f" · {device}"
 
+        meta_row = QWidget()
+        meta_layout = QHBoxLayout(meta_row)
+        meta_layout.setContentsMargins(0, 0, 0, 0)
+
         self.meta_label = QLabel(meta)
         self.meta_label.setStyleSheet("font-weight: bold; font-size: 13px; color: #555; padding-bottom: 4px;")
-        layout.addWidget(self.meta_label)
+        meta_layout.addWidget(self.meta_label)
+
+        self.restore_btn = QPushButton("还原本楼")
+        self.restore_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #d4edda;
+                border: 1px solid #c3e6cb;
+                border-radius: 8px;
+                padding: 4px 14px;
+                font-size: 12px;
+                color: #155724;
+            }
+            QPushButton:hover {
+                background-color: #c3e6cb;
+            }
+        """)
+        self.restore_btn.clicked.connect(self._restore_floor)
+        meta_layout.addWidget(self.restore_btn, alignment=Qt.AlignmentFlag.AlignRight)
+
+        layout.addWidget(meta_row)
 
         form_widget = QWidget()
         form_layout = QFormLayout(form_widget)
@@ -616,6 +666,18 @@ class FloorEditWidget(QWidget):
         """内容变化时同步图片列表并发出修改信号。"""
         self._sync_content_to_images()
         self.modification_changed.emit()
+
+    def _restore_floor(self):
+        """确认后移除该楼层的补丁，恢复为原始内容。"""
+        fn = self.floor_data['floor_number']
+        ret = QMessageBox.question(
+            self, "还原本楼",
+            f"确定要还原 {fn} 楼吗？\n\n该楼层的所有修改将被移除，恢复为原始内容。",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.No,
+        )
+        if ret == QMessageBox.StandardButton.Yes:
+            self.restore_requested.emit(fn)
 
     def _sync_content_to_images(self):
         """根据 content 中的 [图片：] / [补丁：] 标签同步 local_images 列表。"""
