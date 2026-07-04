@@ -241,7 +241,7 @@ body.dark-mode .search-nav-btn {{ color: #aaa; }} body.dark-mode .search-nav-btn
 .lightbox.active {{ display: flex; opacity: 1; }}
 .lightbox img {{
     max-width: 90%; max-height: 90%; background: transparent; padding: 0; border-radius: 4px;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5); cursor: zoom-out; transition: transform 0.2s ease;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5); cursor: grab; transition: transform 0.2s ease;
 }}
 
 /* 灯箱右上角 跳转楼层按钮 */
@@ -411,6 +411,9 @@ document.addEventListener('DOMContentLoaded', () => {{
 
     let currentIndex = 0;
     let scale = 1, rotate = 0, flipH = 1, flipV = 1;
+    let translateX = 0, translateY = 0;
+    let isDragging = false;
+    let dragStartX = 0, dragStartY = 0;
     let currentFloorId = null;
 
     // 向上查找距离图片最近的楼层标题 (h1 或 h3)
@@ -431,7 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {{
     }}
 
     function updateTransform() {{
-        lightboxImg.style.transform = `scale(${{scale}}) rotate(${{rotate}}deg) scaleX(${{flipH}}) scaleY(${{flipV}})`;
+        lightboxImg.style.transform = `translate(${{translateX}}px,${{translateY}}px) scale(${{scale}}) rotate(${{rotate}}deg) scaleX(${{flipH}}) scaleY(${{flipV}})`;
     }}
 
     function showImage(index) {{
@@ -440,7 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {{
         currentIndex = index;
         lightboxImg.src = imgs[index].src;
 
-        scale = 1; rotate = 0; flipH = 1; flipV = 1;
+        scale = 1; rotate = 0; flipH = 1; flipV = 1; translateX = 0; translateY = 0;
         updateTransform();
         if (imgs.length > 0) imageCounter.textContent = (currentIndex + 1) + " / " + imgs.length;
 
@@ -489,7 +492,32 @@ document.addEventListener('DOMContentLoaded', () => {{
     document.getElementById("rotate").onclick = (e) => {{ e.stopPropagation(); rotate += 90; updateTransform(); }}
     document.getElementById("flip-h").onclick = (e) => {{ e.stopPropagation(); flipH *= -1; updateTransform(); }}
     document.getElementById("flip-v").onclick = (e) => {{ e.stopPropagation(); flipV *= -1; updateTransform(); }}
-    document.getElementById("reset").onclick = (e) => {{ e.stopPropagation(); scale = 1; rotate = 0; flipH = 1; flipV = 1; updateTransform(); }}
+    document.getElementById("reset").onclick = (e) => {{ e.stopPropagation(); scale = 1; rotate = 0; flipH = 1; flipV = 1; translateX = 0; translateY = 0; updateTransform(); }}
+
+    // 鼠标拖拽平移图片
+    lightboxImg.addEventListener('mousedown', (e) => {{
+        if (e.button !== 0) return;
+        lightboxImg.style.transition = 'none';
+        isDragging = true;
+        dragStartX = e.clientX - translateX;
+        dragStartY = e.clientY - translateY;
+        lightboxImg.style.cursor = 'grabbing';
+        e.preventDefault();
+    }});
+
+    document.addEventListener('mousemove', (e) => {{
+        if (!isDragging) return;
+        translateX = e.clientX - dragStartX;
+        translateY = e.clientY - dragStartY;
+        updateTransform();
+    }});
+
+    document.addEventListener('mouseup', () => {{
+        if (!isDragging) return;
+        isDragging = false;
+        lightboxImg.style.cursor = 'grab';
+        lightboxImg.style.transition = '';
+    }});
 
     const closeLightbox = () => {{
         lightbox.classList.remove('active');
