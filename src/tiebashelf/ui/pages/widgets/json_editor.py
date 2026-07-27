@@ -11,7 +11,7 @@ from pathlib import Path
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
     QLabel, QPushButton, QLineEdit, QTextEdit, QFileDialog, QMessageBox,
-    QSplitter, QFrame, QScrollArea, QFormLayout, QGroupBox, QToolButton, QToolBar, QSizePolicy,
+    QSplitter, QFrame, QScrollArea, QFormLayout, QGroupBox, QToolButton, QSizePolicy,
     QAbstractItemView
 )
 from PySide6.QtCore import Qt, Signal
@@ -335,8 +335,7 @@ class JsonEditorWindow(QMainWindow):
 
         self._update_hints()
 
-    @staticmethod
-    def _get_hints_from_data(current: dict, original: dict, fn: int):
+    def _get_hints_from_data(self, current: dict, original: dict, fn: int):
         """对比当前楼层数据与原始数据，返回修改提示列表。"""
         hints = []
         if current.get('content', '') != original.get('content', ''):
@@ -873,28 +872,6 @@ class FloorEditWidget(QWidget):
             'ip_location': self.floor_data.get('ip_location', ''),
             'device': self.floor_data.get('device', ''),
         }
-
-    def get_modification_hints(self, original: dict):
-        """生成该楼层的修改提示（供提示面板使用）。"""
-        hints = []
-        current = self.get_modified_floor()
-
-        if current.get('content', '') != original.get('content', ''):
-            hints.append(f"• {self.floor_data['floor_number']}楼 content 已修改")
-
-        orig_img_count = len(original.get('local_images', []))
-        curr_img_count = len(current.get('local_images', []))
-        if curr_img_count > orig_img_count:
-            hints.append(f"• {self.floor_data['floor_number']}楼 新增 {curr_img_count - orig_img_count} 张图片")
-        elif curr_img_count < orig_img_count:
-            hints.append(f"• {self.floor_data['floor_number']}楼 删除了 {orig_img_count - curr_img_count} 张图片")
-
-        for field, label in [('author', '作者'), ('post_time', '发帖时间'),
-                             ('ip_location', 'IP属地'), ('device', '设备')]:
-            if current.get(field, '') != original.get(field, ''):
-                hints.append(f"• {self.floor_data['floor_number']}楼 {label} 已修改")
-
-        return hints
 
     def mark_as_saved(self):
         """标记当前状态为已保存（更新 saved_state）。"""
