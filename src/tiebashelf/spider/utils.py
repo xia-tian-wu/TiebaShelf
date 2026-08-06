@@ -1,7 +1,9 @@
+import re
+import datetime
+from pathlib import Path
 from itertools import takewhile
 from fake_useragent import UserAgent
-import re
-from pathlib import Path
+
 
 def normalize_url(url: str, see_lz: bool) -> str | None:
     """
@@ -143,3 +145,17 @@ def json_to_md_path(json_flie_path: str | Path) -> Path:
     json_path = Path(json_flie_path)
     md_path_obj = json_path.with_suffix(".md") 
     return Path("data") / "markdowns" / md_path_obj.name
+
+def timestamp_to_datetime(timestamp: int, format_str: str = "%Y-%m-%d %H:%M") -> str:
+    """
+    精准转换 Unix 时间戳为本地时间（匹配界面显示逻辑）
+
+    Args:
+        timestamp: Unix 时间戳（整数）
+        format_str: 输出格式
+
+    Returns:
+        格式化后的时间字符串
+    """
+    dt = datetime.datetime.fromtimestamp(timestamp)
+    return dt.strftime(format_str)

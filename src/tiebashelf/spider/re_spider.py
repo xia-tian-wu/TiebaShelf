@@ -1,5 +1,4 @@
 import asyncio
-import datetime
 import json
 import re
 import time
@@ -13,24 +12,9 @@ from tiebashelf.logger import logger
 from tiebashelf.spider.type_models import PostData, FloorData
 from tiebashelf.spider.index_manage import IndexManager
 from tiebashelf.spider.image_link import TiebaImageDownloader
-from tiebashelf.spider.utils import extract_posts_id, get_safe_filename, post_subdir_name
+from tiebashelf.spider.utils import extract_posts_id, get_safe_filename, post_subdir_name, timestamp_to_datetime
 from tiebashelf.markdown_builder import convert_post_json_to_markdown
 import tiebashelf.spider.exceptions as ex
-
-
-def timestamp_to_datetime(timestamp: int, format_str: str = "%Y-%m-%d %H:%M") -> str:
-    """
-    精准转换 Unix 时间戳为本地时间（匹配界面显示逻辑）
-
-    Args:
-        timestamp: Unix 时间戳（整数）
-        format_str: 输出格式
-
-    Returns:
-        格式化后的时间字符串
-    """
-    dt = datetime.datetime.fromtimestamp(timestamp)
-    return dt.strftime(format_str)
 
 
 class TiebaShelf:
@@ -229,7 +213,7 @@ class TiebaShelf:
                 'images_downloaded': history_post_data.get('images_downloaded', 0) + success_count,
                 'images_dir': history_post_data.get('images_dir', ''),
                 'max_floor_number': max(f['floor_number'] for f in sorted_floors),
-                'bar': history_post_data.get('bar', '')
+                'bar': history_post_data.get('bar', '未知吧名')
             }
         else:
             updated_post_data: PostData = {

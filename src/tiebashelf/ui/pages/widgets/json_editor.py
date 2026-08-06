@@ -1,4 +1,5 @@
-"""帖子 JSON 编辑器 — 提供楼层内容/图片的可视化修改界面。
+"""
+帖子 JSON 编辑器 — 提供楼层内容/图片的可视化修改界面。
 
 用户修改以补丁文件形式保存到 PATCHES_DIR，
 原始 JSON 不被修改，Markdown 生成时自动合并补丁。
@@ -417,7 +418,7 @@ class JsonEditorWindow(QMainWindow):
         reply = QMessageBox.question(
             self, "确认撤销",
             "确定要撤销所有修改吗？\n补丁文件将被删除，帖子恢复为原始内容。",
-            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, QMessageBox.No
+            buttons=QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, defaultButton=QMessageBox.StandardButton.No
         )
         if reply != QMessageBox.StandardButton.Yes:
             return

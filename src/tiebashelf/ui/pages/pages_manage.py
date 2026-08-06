@@ -58,18 +58,18 @@ class ManageItemWidget(QWidget):
         layout.setSpacing(0)
 
         # 展示名
-        row1 = QHBoxLayout()
-        row1.setSpacing(4)
+        self.row1_layout = QHBoxLayout()
+        self.row1_layout.setSpacing(4)
 
         self.name_label = QLabel(self.display_name)
         self.name_label.setStyleSheet("font-size: 13px;")
         self.name_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-        row1.addWidget(self.name_label)
+        self.row1_layout.addWidget(self.name_label)
 
         # 宽度占位，避免批量模式下刷新坍缩
         self._h_keeper = QWidget()
         self._h_keeper.setFixedSize(0, 28)
-        row1.addWidget(self._h_keeper)
+        self.row1_layout.addWidget(self._h_keeper)
 
         # 标签容器
         self.tag_container = QWidget()
@@ -78,9 +78,9 @@ class ManageItemWidget(QWidget):
         tag_layout.setContentsMargins(0, 0, 0, 0)
         tag_layout.setSpacing(3)
         self.tag_layout = tag_layout
-        row1.addWidget(self.tag_container)
+        self.row1_layout.addWidget(self.tag_container)
 
-        row1.addStretch()
+        self.row1_layout.addStretch()
 
         self.button_container = QWidget()
         button_layout = QHBoxLayout(self.button_container)
@@ -103,8 +103,8 @@ class ManageItemWidget(QWidget):
         button_layout.addWidget(self.recrawl_btn)
         button_layout.addWidget(self.delete_btn)
 
-        row1.addWidget(self.button_container)
-        layout.addLayout(row1)
+        self.row1_layout.addWidget(self.button_container)
+        layout.addLayout(self.row1_layout)
 
     def refresh_pin_icon(self):
         """更新置顶图标（用 emoji 前缀替代独立控件，避免布局偏移）"""
@@ -299,8 +299,8 @@ class ManageItemWidget(QWidget):
             self._json_editor = None
 
     def set_batch_mode(self, enabled: bool):
+        """操作按钮组（button_container：增量/重爬/删除），普通模式时显示在右侧，批量模式时隐藏，显示复选框"""
         self.is_batch_mode = enabled
-        row1 = self.layout().itemAt(0).layout()  # first QHBoxLayout
         if enabled:
             if not self.checkbox:
                 self.checkbox = QCheckBox()
@@ -308,8 +308,8 @@ class ManageItemWidget(QWidget):
                 self.checkbox.toggled.connect(
                     lambda checked: self.selection_changed.emit(self.post_key, checked)
                 )
-                row1.insertWidget(0, self.checkbox)
-                row1.insertSpacing(1, 8)
+                self.row1_layout.insertWidget(0, self.checkbox)
+                self.row1_layout.insertSpacing(1, 8)
             self.checkbox.show()
             self.button_container.hide()
         else:

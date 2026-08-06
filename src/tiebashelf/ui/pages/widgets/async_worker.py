@@ -2,7 +2,6 @@ import asyncio
 from PySide6.QtCore import Signal, QObject
 from tiebashelf.logger import logger
 from tiebashelf.spider.re_spider import TiebaShelf
-from tiebashelf.spider import exceptions as ex
 
 
 class AsyncWorker(QObject):
@@ -30,7 +29,7 @@ class AsyncWorker(QObject):
             recrawl_urls: 需重新爬取的帖子 URL 列表（强制重爬）
         """
         super().__init__()
-        self.spider: TiebaShelf | None = None
+        self.shelf: TiebaShelf | None = None
         self.new_urls = new_urls or []
         self.update_urls = update_urls or []
         self.recrawl_urls = recrawl_urls or []
@@ -41,20 +40,18 @@ class AsyncWorker(QObject):
             # 创建新的事件循环（每个线程独立）
             results = asyncio.run(self._run_crawl())
             # 清理爬虫客户端
-            self._cleanup_spider()
+            self._cleanup_shelf()
             # 发送完成信号
             self.finished.emit(results)
         except Exception as e:
             logger.error(f"异步任务执行失败：{e}")
-            self._cleanup_spider()
+            self._cleanup_shelf()
             self.error.emit(str(e))
 
-    def _cleanup_spider(self):
-        """清理爬虫对象（非异步，仅置空引用）"""
-        if self.spider is not None:
-            # 注意：这里不能 await，因为不在异步上下文中
-            # 客户端清理已在 _run_crawl 的 finally 中完成
-            self.spider = None
+    def _cleanup_shelf(self):
+        """清理爬虫对象"""
+        if self.shelf is not None:
+            self.shelf = None
 
     async def _run_crawl(self) -> list:
         """
@@ -70,7 +67,7 @@ class AsyncWorker(QObject):
             return []
 
         # 创建爬虫实例
-        self.spider = TiebaShelf()
+        self.shelf = TiebaShelf()
 
         def on_post_done(result: dict):
             url = result['url']
@@ -84,7 +81,7 @@ class AsyncWorker(QObject):
 
         try:
             # 批量并发爬取，但每完成一个就通过 on_post_done 回调触发进度信号
-            results = await self.spider.crawl_multi_posts(
+            results = await self.shelf.crawl_multi_posts(
                 urls=all_urls,
                 recrawl_urls=self.recrawl_urls,
                 on_post_done=on_post_done
@@ -96,90 +93,3 @@ class AsyncWorker(QObject):
             # 确保客户端被清理（即使在任务执行过程中）
             # await self.spider.cleanup()
             pass
-
-    async def _crawl_new(self, url: str) -> dict:
-        """
-        爬取单个新帖子（保留用于兼容）
-
-        Args:
-            url: 帖子 URL
-
-        Returns:
-            爬取结果字典
-        """
-        self.progress.emit(f"爬取新帖：{url}")
-        try:
-            see_lz = 'see_lz=1' in url
-            result = await self.spider.crawl_full_post(url, see_lz=see_lz)
-            self.task_completed.emit(url, 'crawl')
-            return {
-                'url': url,
-                'status': 'success' if result else 'failed',
-                'data': result
-            }
-        except ex.InvalidURLError as e:
-            logger.error(f"【URL 错误】{e.message} | URL: {e.url}")
-            self.error.emit(f"❌ URL 格式错误\n\n{e.url}\n\n请检查链接是否正确")
-            return {'url': url, 'status': 'error', 'error': f"URL 错误：{e.message}"}
-        except ex.NetworkError as e:
-            logger.error(f"【网络错误】{e.message} | URL: {e.url}")
-            self.error.emit(f"❌ 网络请求失败\n\n{e.url}\n\n请检查网络连接后重试")
-            return {'url': url, 'status': 'error', 'error': f"网络错误：{e.message}"}
-        except ex.ParseError as e:
-            logger.error(f"【解析错误】{e.message} | URL: {e.url}")
-            self.error.emit(f"❌ 页面解析失败\n\n{e.url}\n\n可能是贴吧更新了页面结构")
-            return {'url': url, 'status': 'error', 'error': f"解析错误：{e.message}"}
-        except ex.PostNotFoundError as e:
-            logger.error(f"【帖子不存在】{e.message} | URL: {e.url}")
-            self.error.emit("❌ 帖子不存在或已被删除")
-            return {'url': url, 'status': 'error', 'error': f"帖子不存在：{e.message}"}
-        except Exception as e:
-            logger.error(f"【未知错误】{type(e).__name__}: {e}")
-            self.error.emit(f"❌ 发生未知错误:\n{str(e)}")
-            return {'url': url, 'status': 'error', 'error': str(e)}
-
-    async def _update_existing(self, url: str) -> dict:
-        """
-        更新单个旧帖子（保留用于兼容）
-
-        Args:
-            url: 帖子 URL
-
-        Returns:
-            更新结果字典
-        """
-        self.progress.emit(f"更新旧帖：{url}")
-        try:
-            # re_spider 中 crawl_full_post 已自动处理增量更新
-            see_lz = 'see_lz=1' in url
-            result = await self.spider.crawl_full_post(url, see_lz=see_lz)
-            self.task_completed.emit(url, 'update')
-            return {
-                'url': url,
-                'status': 'updated' if result else 'skipped',
-                'data': result
-            }
-        except ex.InvalidURLError as e:
-            logger.error(f"【URL 错误】{e.message} | URL: {e.url}")
-            self.error.emit(f"❌ URL 格式错误\n\n{e.url}\n\n请检查链接是否正确")
-            return {'url': url, 'status': 'error', 'error': f"URL 错误：{e.message}"}
-        except ex.NetworkError as e:
-            logger.error(f"【网络错误】{e.message} | URL: {e.url}")
-            self.error.emit(f"❌ 网络请求失败\n\n{e.url}\n\n请检查网络连接后重试")
-            return {'url': url, 'status': 'error', 'error': f"网络错误：{e.message}"}
-        except ex.ParseError as e:
-            logger.error(f"【解析错误】{e.message} | URL: {e.url}")
-            self.error.emit(f"❌ 页面解析失败\n\n{e.url}\n\n可能是贴吧更新了页面结构")
-            return {'url': url, 'status': 'error', 'error': f"解析错误：{e.message}"}
-        except ex.PostNotFoundError as e:
-            logger.error(f"【帖子不存在】{e.message} | URL: {e.url}")
-            self.error.emit("❌ 帖子不存在或已被删除")
-            return {'url': url, 'status': 'error', 'error': f"帖子不存在：{e.message}"}
-        except ex.FileIndexError as e:
-            logger.error(f"【文件错误】{e.message}")
-            self.error.emit("❌ 索引文件错误\n\n请重试或手动修复索引文件")
-            return {'url': url, 'status': 'error', 'error': f"文件错误：{e.message}"}
-        except Exception as e:
-            logger.error(f"【未知错误】{type(e).__name__}: {e}")
-            self.error.emit(f"❌ 发生未知错误:\n{str(e)}")
-            return {'url': url, 'status': 'error', 'error': str(e)}
