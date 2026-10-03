@@ -16,6 +16,9 @@ from tiebashelf.spider.utils import extract_posts_id, get_safe_filename, post_su
 from tiebashelf.markdown_builder import convert_post_json_to_markdown
 import tiebashelf.spider.exceptions as ex
 
+_MD_ESCAPE_CHARS = r'\<>`*_{}[]()#+-.!~&'
+_MD_ESCAPE_RE = re.compile(r'([' + re.escape(_MD_ESCAPE_CHARS) + r'])')
+
 
 class TiebaShelf:
     """基于 aiotieba 的贴吧爬虫类"""
@@ -52,9 +55,7 @@ class TiebaShelf:
     
     def escape_markdown(self, text: str) -> str:
         """转义 Markdown 元字符，防止被错误解析"""
-        # 需要转义的字符（按标准 Markdown）
-        escape_chars = r'\<>`*_{}[]()#+-.!~&'
-        return re.sub(r'([' + re.escape(escape_chars) + r'])', r'\\\1', text)
+        return _MD_ESCAPE_RE.sub(r'\\\1', text)
 
     async def _get_posts(self, tid: int, pn: int, see_lz: bool):
         """异步包装 rs_aiotieba.get_posts：放到线程池执行，不阻塞事件循环"""

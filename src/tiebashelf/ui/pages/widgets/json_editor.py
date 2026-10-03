@@ -7,7 +7,6 @@
 import json
 import shutil
 import time
-import re
 from pathlib import Path
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
@@ -20,7 +19,7 @@ from PySide6.QtGui import QIcon
 
 from tiebashelf.config import MARKDOWN_DIR, IMAGES_DIR, PATCHES_DIR, PACKAGE_DIR
 from tiebashelf.logger import logger
-from tiebashelf.markdown_builder import _render_markdown_from_post_data
+from tiebashelf.markdown_builder import _render_markdown_from_post_data, IMAGE_TAG_RE, PATCH_TAG_RE
 from tiebashelf.spider.utils import post_subdir_name
 
 
@@ -682,8 +681,8 @@ class FloorEditWidget(QWidget):
     def _sync_content_to_images(self):
         """根据 content 中的 [图片：] / [补丁：] 标签同步 local_images 列表。"""
         content = self.content_edit.toPlainText()
-        found_crawl = re.findall(r'\[图片：([^\]]+)\]', content)
-        found_patch = re.findall(r'\[补丁：([^\]]+)\]', content)
+        found_crawl = IMAGE_TAG_RE.findall(content)
+        found_patch = PATCH_TAG_RE.findall(content)
 
         current_filenames = [Path(p).name for p in self.local_images]
 

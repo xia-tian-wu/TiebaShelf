@@ -7,6 +7,10 @@ from tiebashelf.config import MARKDOWN_DIR, IMAGES_DIR, PATCHES_DIR
 from tiebashelf.spider.type_models import PostData
 from tiebashelf.spider.utils import post_subdir_name
 
+# 帖子内容中的图片/补丁标签（渲染与编辑同步共用，修改格式时两处自动生效）
+IMAGE_TAG_RE = re.compile(r'\[图片：([^\]]+)\]')
+PATCH_TAG_RE = re.compile(r'\[补丁：([^\]]+)\]')
+
 def convert_post_json_to_markdown(
     json_path: str | Path,
     output_md_dir: Path | None = None,
@@ -126,9 +130,9 @@ def _render_markdown_from_post_data(
         lines.append(f"### {author} \n{floor_meta_str}\n")
         
         # 替换图片标签
-        rendered_content = re.sub(r'\[图片：([^\]]+)\]', replace_image, content)
+        rendered_content = IMAGE_TAG_RE.sub(replace_image, content)
         if replace_patch:
-            rendered_content = re.sub(r'\[补丁：([^\]]+)\]', replace_patch, rendered_content)
+            rendered_content = PATCH_TAG_RE.sub(replace_patch, rendered_content)
         rendered_content = rendered_content.replace('\n', '  \n')
         lines.append(rendered_content.strip() or '「该楼层无内容」')
         lines.append('\n---\n')

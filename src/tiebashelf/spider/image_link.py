@@ -18,6 +18,11 @@ RETRY_WAIT_MAX = 10
 
 HEADERS = get_headers()
 
+# waterurl 提取模式（预编译，分层匹配优先级 1→2→3）
+WATERURL_TIEBAPIC_RE = re.compile(r'"waterurl"\s*:\s*"(https://tiebapic\.baidu\.com[^"]+)"')
+WATERURL_IMGSA_RE = re.compile(r'"waterurl"\s*:\s*"(https://imgsa\.baidu\.com/forum/pic/item/[^"]+\.jpg[^"]*)"')
+WATERURL_GENERIC_RE = re.compile(r'"waterurl"\s*:\s*"(https://[^"]+)"')
+
 class TiebaImageDownloader:
     """基于正则提取 waterurl 的贴吧图片下载器"""
     def __init__(self, client: Optional[httpx.AsyncClient] = None):
@@ -61,22 +66,19 @@ class TiebaImageDownloader:
         html_text = resp.text
         
         # === 优先级 1: tiebapic.baidu.com (带参数的高清图) ===
-        pattern1 = re.compile(r'"waterurl"\s*:\s*"(https://tiebapic\.baidu\.com[^"]+)"')
-        match = pattern1.search(html_text)
+        match = WATERURL_TIEBAPIC_RE.search(html_text)
         if match:
             url = match.group(1).replace("\\/", "/")
             return url
         
         # === 优先级 2: imgsa.baidu.com/forum/pic/item/ (纯净jpg) ===
-        pattern2 = re.compile(r'"waterurl"\s*:\s*"(https://imgsa\.baidu\.com/forum/pic/item/[^"]+\.jpg[^"]*)"')
-        match = pattern2.search(html_text)
+        match = WATERURL_IMGSA_RE.search(html_text)
         if match:
             url = match.group(1).replace("\\/", "/")
             return url
         
         # === 优先级 3: 通用 https:// 开头 (兜底方案) ===
-        pattern3 = re.compile(r'"waterurl"\s*:\s*"(https://[^"]+)"')
-        match = pattern3.search(html_text)
+        match = WATERURL_GENERIC_RE.search(html_text)
         if match:
             url = match.group(1).replace("\\/", "/")
             # 简单过滤明显无效的链接
