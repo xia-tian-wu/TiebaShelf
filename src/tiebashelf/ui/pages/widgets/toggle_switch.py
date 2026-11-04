@@ -1,6 +1,7 @@
+from PySide6.QtCore import Property, QEasingCurve, QPropertyAnimation, QRectF, Qt, Signal
+from PySide6.QtGui import QBrush, QColor, QPainter, QPen
 from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import Signal, Qt, QPropertyAnimation, QEasingCurve, Property, QRectF
-from PySide6.QtGui import QPainter, QColor, QPen, QBrush
+
 
 class ToggleSwitch(QWidget):
     toggled = Signal(bool)

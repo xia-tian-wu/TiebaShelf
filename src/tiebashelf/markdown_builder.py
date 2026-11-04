@@ -1,9 +1,10 @@
+import json
 import os
 import re
-import json
 from pathlib import Path
 from urllib.parse import quote
-from tiebashelf.config import MARKDOWN_DIR, IMAGES_DIR, PATCHES_DIR
+
+from tiebashelf.config import IMAGES_DIR, MARKDOWN_DIR, PATCHES_DIR
 from tiebashelf.spider.type_models import PostData
 from tiebashelf.spider.utils import post_subdir_name
 

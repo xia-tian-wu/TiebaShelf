@@ -1,13 +1,23 @@
 from pathlib import Path
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
-    QLabel, QPushButton, QCheckBox, QMessageBox, QSizePolicy,
-    QAbstractItemView, QFileDialog
-)
-from PySide6.QtCore import QSize
 
+from PySide6.QtCore import QSize
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QCheckBox,
+    QFileDialog,
+    QHBoxLayout,
+    QLabel,
+    QListWidget,
+    QListWidgetItem,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
+
+from tiebashelf.importer import get_post_integrity, import_selected, preview_export
 from tiebashelf.spider.index_manage import IndexManager
-from tiebashelf.importer import preview_export, get_post_integrity, import_selected
 
 
 class ImportItemWidget(QWidget):

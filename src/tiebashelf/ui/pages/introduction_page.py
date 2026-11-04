@@ -1,5 +1,7 @@
 from PySide6.QtWidgets import QTextBrowser, QVBoxLayout, QWidget
+
 from tiebashelf.config import PACKAGE_DIR
+
 
 class PageFuture(QWidget):
     def __init__(self):

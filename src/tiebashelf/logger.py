@@ -1,9 +1,11 @@
 # logger.py
 import logging
 import sys
+
 from PySide6.QtCore import QObject, Signal
-from PySide6.QtWidgets import QTextEdit
 from PySide6.QtGui import QTextCursor
+from PySide6.QtWidgets import QTextEdit
+
 
 # 自定义UI日志处理器（线程安全）
 class QTextEditLogHandler(logging.Handler, QObject):

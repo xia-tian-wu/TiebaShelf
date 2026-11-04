@@ -1,26 +1,41 @@
+import asyncio
 import os
 import webbrowser
 from pathlib import Path
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
-    QLabel, QPushButton, QCheckBox, QMessageBox, QSizePolicy,
-    QAbstractItemView, QMenu, QApplication, QComboBox, QLineEdit,
-    QFileDialog, QDialog, QDialogButtonBox
-)
-from PySide6.QtCore import Qt, Signal, QThread, Slot
-from PySide6.QtGui import QAction, QGuiApplication, QMouseEvent
-from tiebashelf.spider.index_manage import IndexManager
-from tiebashelf.spider.utils import json_to_md_path
-from tiebashelf.exporter import export_posts
-from tiebashelf.ui.pages.widgets.async_worker import AsyncWorker
-from tiebashelf.ui.pages.markdown_viewer_page import MarkdownViewerWindow
-from tiebashelf.logger import logger
-import asyncio
 
-from tiebashelf.ui.pages.widgets.toggle_switch import ToggleSwitch
-from tiebashelf.ui.pages.widgets.tag_chip_button import TagChipButton
+from PySide6.QtCore import Qt, QThread, Signal, Slot
+from PySide6.QtGui import QAction, QGuiApplication, QMouseEvent
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QApplication,
+    QCheckBox,
+    QComboBox,
+    QDialog,
+    QDialogButtonBox,
+    QFileDialog,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QMenu,
+    QMessageBox,
+    QPushButton,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 from tiebashelf.config import MARKDOWN_DIR
+from tiebashelf.exporter import export_posts
+from tiebashelf.logger import logger
+from tiebashelf.spider.index_manage import IndexManager
+from tiebashelf.spider.utils import json_to_md_path
+from tiebashelf.ui.pages.markdown_viewer_page import MarkdownViewerWindow
+from tiebashelf.ui.pages.widgets.async_worker import AsyncWorker
+from tiebashelf.ui.pages.widgets.tag_chip_button import TagChipButton
+from tiebashelf.ui.pages.widgets.toggle_switch import ToggleSwitch
+
 
 class ManageItemWidget(QWidget):
     """单个帖子的管理项（含按钮、标签、置顶）"""
@@ -273,8 +288,8 @@ class ManageItemWidget(QWidget):
 
     def open_json_editor(self):
         """打开JSON编辑器"""
-        from tiebashelf.ui.pages.widgets.json_editor import JsonEditorWindow
         from tiebashelf.config import POSTS_DIR
+        from tiebashelf.ui.pages.widgets.json_editor import JsonEditorWindow
         json_path = Path(self.file_path) if Path(self.file_path).is_absolute() else POSTS_DIR / Path(self.file_path).name
         if not json_path.exists():
             QMessageBox.warning(self, "提示", f"找不到帖子JSON文件:\n{json_path}")

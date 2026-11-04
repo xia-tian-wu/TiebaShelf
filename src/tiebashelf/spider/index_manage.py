@@ -1,12 +1,19 @@
 import json
 import shutil
 from pathlib import Path
-from tiebashelf.logger import logger
 from typing import Dict, Tuple
-from tiebashelf.spider.type_models import PostData, PostIndex
 
-from tiebashelf.spider.utils import extract_posts_id, get_safe_filename, get_display_name, json_to_md_path, post_subdir_name
 from tiebashelf.config import DATA_DIR, PATCHES_DIR
+from tiebashelf.logger import logger
+from tiebashelf.spider.type_models import PostData, PostIndex
+from tiebashelf.spider.utils import (
+    extract_posts_id,
+    get_display_name,
+    get_safe_filename,
+    json_to_md_path,
+    post_subdir_name,
+)
+
 
 class IndexManager:
     def __init__(self):

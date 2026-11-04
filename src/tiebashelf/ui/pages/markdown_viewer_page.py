@@ -1,9 +1,12 @@
-from PySide6.QtWidgets import QMainWindow, QVBoxLayout, QTabWidget, QMessageBox, QWidget
+from pathlib import Path
+
 from PySide6.QtCore import Slot
 from PySide6.QtGui import QIcon
-from pathlib import Path
-from tiebashelf.ui.pages.widgets.markdown_viewer import MarkdownViewer
+from PySide6.QtWidgets import QMainWindow, QMessageBox, QTabWidget, QVBoxLayout, QWidget
+
 from tiebashelf.config import PACKAGE_DIR
+from tiebashelf.ui.pages.widgets.markdown_viewer import MarkdownViewer
+
 
 class MarkdownViewerWindow(QMainWindow):
     """Markdown 阅读器窗口 - 独立窗口，支持多标签页管理"""

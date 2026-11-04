@@ -8,18 +8,35 @@ import json
 import shutil
 import time
 from pathlib import Path
-from PySide6.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QListWidget, QListWidgetItem,
-    QLabel, QPushButton, QLineEdit, QTextEdit, QFileDialog, QMessageBox,
-    QSplitter, QFrame, QScrollArea, QFormLayout, QGroupBox, QToolButton, QSizePolicy,
-    QAbstractItemView
-)
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QFileDialog,
+    QFormLayout,
+    QFrame,
+    QGroupBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QListWidget,
+    QListWidgetItem,
+    QMainWindow,
+    QMessageBox,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QSplitter,
+    QTextEdit,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 
-from tiebashelf.config import MARKDOWN_DIR, IMAGES_DIR, PATCHES_DIR, PACKAGE_DIR
+from tiebashelf.config import IMAGES_DIR, MARKDOWN_DIR, PACKAGE_DIR, PATCHES_DIR
 from tiebashelf.logger import logger
-from tiebashelf.markdown_builder import _render_markdown_from_post_data, IMAGE_TAG_RE, PATCH_TAG_RE
+from tiebashelf.markdown_builder import IMAGE_TAG_RE, PATCH_TAG_RE, _render_markdown_from_post_data
 from tiebashelf.spider.utils import post_subdir_name
 
 

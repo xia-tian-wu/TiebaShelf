@@ -1,5 +1,7 @@
 import asyncio
-from PySide6.QtCore import Signal, QObject
+
+from PySide6.QtCore import QObject, Signal
+
 from tiebashelf.logger import logger
 from tiebashelf.spider.re_spider import TiebaShelf
 

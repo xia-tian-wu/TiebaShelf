@@ -1,15 +1,24 @@
-import re
 import asyncio
-from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QTextEdit, QHBoxLayout, QPushButton,
-    QLabel, QMessageBox, QFrame, QDialog
-)
+import re
+
 from PySide6.QtCore import QThread, QTimer
+from PySide6.QtWidgets import (
+    QDialog,
+    QFrame,
+    QHBoxLayout,
+    QLabel,
+    QMessageBox,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
+from tiebashelf.spider.index_manage import IndexManager
+from tiebashelf.spider.utils import normalize_url
+from tiebashelf.ui.pages.widgets.async_worker import AsyncWorker
 from tiebashelf.ui.pages.widgets.toggle_switch import ToggleSwitch
 
-from tiebashelf.spider.utils import normalize_url
-from tiebashelf.spider.index_manage import IndexManager
-from tiebashelf.ui.pages.widgets.async_worker import AsyncWorker
 
 # === 核心界面类 ===
 class PageCrawl(QWidget):

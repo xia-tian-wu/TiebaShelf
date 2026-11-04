@@ -1,4 +1,5 @@
-from typing import TypedDict, List, Optional
+from typing import List, Optional, TypedDict
+
 
 # 帖子索引元数据（用于去重/记录爬取状态）
 class PostIndex(TypedDict, total=False):

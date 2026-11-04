@@ -13,3 +13,25 @@ tiebashelf = "tiebashelf.__main__:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+# ============================================================
+# Ruff（VSCode 的 Ruff 插件与命令行共用这份配置）
+# 固定规则集，避免 ruff / 插件升级后默认规则变化导致满屏黄线
+# ============================================================
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src"]
+# 旧版 HTML 解析实现，已不被任何模块引用，仅作参考保留
+extend-exclude = ["src/tiebashelf/spider/tieba_spider.py"]
+
+[tool.ruff.lint]
+# 只保留：语法错 + 未定义名 + 未使用变量 + import 排序
+# （不引入 UP/SIM/BLE 等风格类规则，避免编辑器里出现大量与功能无关的提示）
+select = ["E4", "E7", "E9", "F", "I"]
+# 与 AGENTS.md 的检查口径保持一致：不把未使用的 import 当作问题
+ignore = ["F401"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

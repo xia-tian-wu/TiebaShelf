@@ -1,10 +1,12 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QMessageBox
-from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtCore import QUrl
-from pathlib import Path
-from markdown_it import MarkdownIt
-import uuid
 import tempfile
+import uuid
+from pathlib import Path
+
+from markdown_it import MarkdownIt
+from PySide6.QtCore import QUrl
+from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWidgets import QMessageBox, QVBoxLayout, QWidget
+
 
 def build_standalone_html(md_path: Path, html_body: str) -> str:
     """构建包含完整 CSS/JS 的独立 HTML 文档，可用于浏览器打开。

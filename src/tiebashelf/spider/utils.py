@@ -1,7 +1,8 @@
-import re
 import datetime
-from pathlib import Path
+import re
 from itertools import takewhile
+from pathlib import Path
+
 from fake_useragent import UserAgent
 
 

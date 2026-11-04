@@ -1,21 +1,35 @@
 import sys
-from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QHBoxLayout, QVBoxLayout,
-    QListWidget, QStackedWidget, QTextEdit, QLabel, QStatusBar,
-    QPushButton, QSizePolicy, QProgressBar, QMessageBox
-)
-from PySide6.QtCore import Qt, Signal, QSharedMemory
-from PySide6.QtGui import QPalette, QColor, QIcon
-from tiebashelf.spider.re_spider import TiebaShelf
 
-from tiebashelf.ui.pages.widgets.markdown_viewer import cleanup_stale_temp_html
-from tiebashelf.ui.pages.pages_crawl import PageCrawl
-from tiebashelf.ui.pages.widgets.progress_manager import TaskProgressManager
-from tiebashelf.ui.pages.pages_manage import PageManage
-from tiebashelf.ui.pages.pages_import import PageImport
-from tiebashelf.ui.pages.introduction_page import PageFuture
+from PySide6.QtCore import QSharedMemory, Qt, Signal
+from PySide6.QtGui import QColor, QIcon, QPalette
+from PySide6.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QLabel,
+    QListWidget,
+    QMainWindow,
+    QMessageBox,
+    QProgressBar,
+    QPushButton,
+    QSizePolicy,
+    QStackedWidget,
+    QStatusBar,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
+
 from tiebashelf.config import PACKAGE_DIR
-from tiebashelf.logger import add_ui_handler, remove_ui_handler, logger as global_logger
+from tiebashelf.logger import add_ui_handler, remove_ui_handler
+from tiebashelf.logger import logger as global_logger
+from tiebashelf.spider.re_spider import TiebaShelf
+from tiebashelf.ui.pages.introduction_page import PageFuture
+from tiebashelf.ui.pages.pages_crawl import PageCrawl
+from tiebashelf.ui.pages.pages_import import PageImport
+from tiebashelf.ui.pages.pages_manage import PageManage
+from tiebashelf.ui.pages.widgets.markdown_viewer import cleanup_stale_temp_html
+from tiebashelf.ui.pages.widgets.progress_manager import TaskProgressManager
+
 
 class MainWindow(QMainWindow):
     page_switched = Signal(int)

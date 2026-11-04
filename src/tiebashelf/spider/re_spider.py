@@ -3,18 +3,23 @@ import json
 import re
 import time
 from pathlib import Path
-from typing import List, Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from rs_aiotieba import Post, Posts, get_posts
 
-from tiebashelf.config import POSTS_DIR, IMAGES_DIR
-from tiebashelf.logger import logger
-from tiebashelf.spider.type_models import PostData, FloorData
-from tiebashelf.spider.index_manage import IndexManager
-from tiebashelf.spider.image_link import TiebaImageDownloader
-from tiebashelf.spider.utils import extract_posts_id, get_safe_filename, post_subdir_name, timestamp_to_datetime
-from tiebashelf.markdown_builder import convert_post_json_to_markdown
 import tiebashelf.spider.exceptions as ex
+from tiebashelf.config import IMAGES_DIR, POSTS_DIR
+from tiebashelf.logger import logger
+from tiebashelf.markdown_builder import convert_post_json_to_markdown
+from tiebashelf.spider.image_link import TiebaImageDownloader
+from tiebashelf.spider.index_manage import IndexManager
+from tiebashelf.spider.type_models import FloorData, PostData
+from tiebashelf.spider.utils import (
+    extract_posts_id,
+    get_safe_filename,
+    post_subdir_name,
+    timestamp_to_datetime,
+)
 
 _MD_ESCAPE_CHARS = r'\<>`*_{}[]()#+-.!~&'
 _MD_ESCAPE_RE = re.compile(r'([' + re.escape(_MD_ESCAPE_CHARS) + r'])')

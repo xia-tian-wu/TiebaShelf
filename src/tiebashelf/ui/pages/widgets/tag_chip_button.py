@@ -1,6 +1,6 @@
+from PySide6.QtCore import QRectF, QSize, Qt, Signal
+from PySide6.QtGui import QBrush, QColor, QFontMetrics, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QWidget
-from PySide6.QtCore import Signal, Qt, QRectF, QSize
-from PySide6.QtGui import QPainter, QColor, QPen, QBrush, QFontMetrics, QPainterPath
 
 
 class TagChipButton(QWidget):

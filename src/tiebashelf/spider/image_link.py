@@ -1,12 +1,14 @@
-import re
 import asyncio
-import httpx
-from typing import List, Dict, Optional, Tuple
+import re
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple
 from urllib.parse import urlparse
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-from tiebashelf.spider.type_models import FloorData
+
+import httpx
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+
 from tiebashelf.logger import logger
+from tiebashelf.spider.type_models import FloorData
 from tiebashelf.spider.utils import get_headers
 
 # === 配置常量 ===
@@ -117,7 +119,7 @@ class TiebaImageDownloader:
             if temp_path.exists():
                 try:
                     temp_path.unlink()
-                except:
+                except OSError:
                     pass
             raise e
 

@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 
+
 def get_data_path() -> Path:
     """
     获取数据文件的绝对路径 (用于保存 json, logs, db 等)

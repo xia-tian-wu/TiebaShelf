@@ -3,7 +3,7 @@ import shutil
 from pathlib import Path
 from typing import Tuple
 
-from tiebashelf.config import POSTS_DIR, IMAGES_DIR, MARKDOWN_DIR
+from tiebashelf.config import IMAGES_DIR, MARKDOWN_DIR, POSTS_DIR
 from tiebashelf.logger import logger
 from tiebashelf.markdown_builder import convert_post_json_to_markdown
 from tiebashelf.spider.index_manage import IndexManager
