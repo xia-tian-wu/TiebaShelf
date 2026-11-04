@@ -11,3 +11,4 @@ turn_to.py
 AGENTS.md
 
 .vscode
+.ruff_cache
